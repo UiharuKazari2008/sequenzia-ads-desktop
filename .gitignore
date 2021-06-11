@@ -1,0 +1,6 @@
+Wallpaper
+.idea/*
+config.json
+sequenzia-ads-micro.iml
+/node_modules/
+package-lock.json
