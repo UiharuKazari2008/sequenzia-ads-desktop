@@ -2,7 +2,7 @@
 Simple and Lightweight way to get random wallpapers from Sequenzia (Requires Login)
 ## Authentication
 You must get a static Login Key from Sequenzia<br>
-Got to the user menu > Authentication > Generate or Copy the key<br>
+Got to the user menu > Authentication > Static Login Key > Generate or Copy the key<br>
 Place it in the Config file
 ## Install
 `npm install -g sequenzia-ads-micro`<br>
@@ -18,7 +18,7 @@ Registered Enabled, Every 5 Minutes
 ```
 
 ## Configuration - config.json
-Example Configuration for Timed Interval
+### Example config.json
 ```json
 {
   "sequenziaHost": "seq.moe",
@@ -39,7 +39,55 @@ Example Configuration for Timed Interval
   "onlyLightImages": false
 }
 ```
-Example Configuration for Cron Schedules<br>
+###Extra Options
+#### Resolutions
+```json
+{
+  "minimumHeight": "1080"
+}
+```
+or
+```json
+{
+  "minimumWidth": "1920"
+}
+```
+You can set a minimum height and or width as well if you want strict minimum resolutions instead of the lose "minimumResolution"<br>
+#### Ratio (Overrides wideScreenOnly)
+```json
+{
+  "ratioQuery": "0.01-0.9"
+}
+```
+#### Album
+```json
+{
+  "albumId": "10"
+}
+```
+You can also set a album ID to only get images from an album<br>
+#### Search Query
+```json
+{
+  "searchQuery": "text:Twitter Image"
+}
+```
+#### Color Query (Overrides onlyDarkImages and onlyLightImages)
+```json
+{
+  "colorQuery": "0-195:0-199:0-200"
+}
+```
+You can use the new color range or color selection, use the "color=" string directly from the URL in Sequenzia Web
+#### Manual Options
+```json
+{
+  "extraOptions": "options=value&option2=value"
+}
+```
+Allows for additional options that have not been yet implemented
+
+## Cron Schedules
 Please use [Cron Guru](https://crontab.guru/) for formatting, Incorrect cron job definitions can and will be disastrous!<br>
 ```text
 From 5AM to 5PM

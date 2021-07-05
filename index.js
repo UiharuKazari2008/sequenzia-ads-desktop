@@ -67,12 +67,16 @@ async function loginValidate (key, cb) {
 function requestBuilder(params) {
     let _opts = [];
     if (params.location) { if (params.location.includes(":")) { _opts.push(['folder', params.location]) ;} else { _opts.push(['channel', params.location]); } }
+    if (params.albumId) { _opts.push(['album', params.albumId]); }
+    if (params.searchQuery) { _opts.push(['search', params.searchQuery]); }
     if (params.favoritesOnly) { _opts.push(['pins', `true`]); }
     if (params.enableNSFW) { _opts.push(['nsfw', `true`]); }
     if (params.numberOfDaysToSearch) { _opts.push(['numdays', params.numberOfDaysToSearch]); }
-    if (params.wideScreenOnly) { _opts.push(['ratio', `0.01-1`]); }
+    if (params.ratioQuery) { _opts.push(['ratio', params.ratioQuery]); } else if (params.wideScreenOnly) { _opts.push(['ratio', `0.01-1`]); }
     if (params.minimumResolution) { _opts.push(['minres', params.minimumResolution]); }
-    if (params.onlyDarkImages) { _opts.push(['dark', 'true']); } else if (params.onlyLightImages) { _opts.push(['dark', 'false']); }
+    if (params.minimumHeight) { _opts.push(['minhres', params.minimumHeight]); }
+    if (params.minimumWidth) { _opts.push(['minwres', params.minimumWidth]); }
+    if (params.colorQuery) { _opts.push(['color', params.colorQuery]); } else if (params.onlyDarkImages) { _opts.push(['dark', 'true']); } else if (params.onlyLightImages) { _opts.push(['dark', 'false']); }
     if (params.displayName) { _opts.push(['displayname', `ADSMicro-${params.displayName}`]); } else { _opts.push(['displayname', 'ADSMicro-Untitled']); }
     _opts.push(['nocds', 'true'])
     if (params.extraOptions && params.extraOptions.length > 2) { _opts.push(params.extraOptions); }
