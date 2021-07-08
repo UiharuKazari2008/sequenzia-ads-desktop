@@ -175,7 +175,8 @@ From 6PM to 6AM
 }
 ```
 ## Timed Swap
-This uses the ADS Lite displaySwap system, more useful if your use webMode and master/slave but is compatible will all modes.
+This uses the ADS Lite displaySwap system, more useful if your use webMode and master/slave but is compatible will all modes.<br>
+<b>NOTE: You must only have 2 items, Timed Swap only supports 2 display names</b>
 ```text
 Until 6:30PM
     Display Images From the "Desk Right" device
