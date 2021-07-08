@@ -306,20 +306,11 @@ async function getNextImage (_config) {
                 let _dsT2_2 = (swapTimes[1].swapTime.toString().includes('.')) ? ((parseFloat(swapTimes[1].swapTime) - _dsT2_1) * 60).toFixed(0) : 0;
 
                 _dssT1B = moment().hours(_dsT1_1).minutes(_dsT1_2).seconds(0).milliseconds(0).valueOf();
-                _dssT2B = moment().hours(_dsT2_1).minutes(_dsT2_2).seconds(0).milliseconds(0).valueOf();
 
                 if (Date.now() >= _dssT1B) {
-                    _dssT1 = moment().add(1, 'day').hours(_dsT1_1).minutes(_dsT1_2).seconds(0).milliseconds(0).valueOf();
-                    _dssT2 = moment().add(1, 'day').hours(_dsT2_1).minutes(_dsT2_2).seconds(0).milliseconds(0).valueOf();
-                } else {
-                    _dssT1 = moment().hours(_dsT1_1).minutes(_dsT1_2).seconds(0).milliseconds(0).valueOf();
-                    _dssT2 = moment().add(1, 'day').hours(_dsT2_1).minutes(_dsT2_2).seconds(0).milliseconds(0).valueOf();
-                }
-
-                if (_dssT1 && _dssT2) {
-                    if (Date.now() >= _dssT1B || Date.now() <= _dssT2B) { _selectedIndex = 1; }
-                } else {
-                    console.error(`Failed to setup display auto swap : No time setup`);
+                    _selectedIndex = 1;
+                } else if (Date.now() <= _dssT2B) {
+                    _selectedIndex = 1;
                 }
 
                 if (config.webMode) {
