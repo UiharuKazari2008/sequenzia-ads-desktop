@@ -96,7 +96,7 @@ function requestBuilder(params) {
         if (params.extraOptions && params.extraOptions.length > 2) { _opts.push(params.extraOptions); }
     }
     if (params.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? params.displayName : `ADSMicro-${params.displayName}`]); } else if (config.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? config.displayName : `ADSMicro-${config.displayName}`]); } else { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? 'Untitled' : 'ADSMicro-Untitled']); }
-    if (config.slave && config.webMode) { _opts.push(['displaySlave', `true`]); }
+    if (config.slave !== undefined && config.webMode) { _opts.push(['displaySlave', `${config.slave}`]); }
     _opts.push(['nocds', 'true']);
     return _opts;
 }
