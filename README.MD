@@ -18,7 +18,49 @@ Registered Enabled, Every 5 Minutes
 ```
 
 ## Configuration - config.json
-### Example config.json
+### Web Mode
+This mode will request a micro version of the standard ADS Lite system, this will generate an image to allow for portrait images to be displayed correctly
+#### Independent Mode
+```json
+{
+  "sequenziaHost": "seq.moe",
+  "staticLoginKey": "YOURLOGINKEY",
+  "displayName": "Untitled",
+  "webMode": true,
+
+  "refreshTimeMin": 5,
+
+  "location": "Seq1:Art:*",
+  "numberOfDaysToSearch": "365",
+
+  "extraOptions": "",
+  "favoritesOnly": false,
+  "enableNSFW": false,
+  "minimumResolution": "1080",
+  "wideScreenOnly": true,
+  "onlyDarkImages": false,
+  "onlyLightImages": false
+}
+```
+#### Master/Slave Mode
+In a master / slave relationship you can set a display as the master with `slave: false` and this instance will be we the display that generates the actual request and will write to the history. <br>
+All Slave instances will retrieve the image that has been set on the master, effectively synchronising all displays.<br>
+NOTE: Just like ADS Lite if the master is offline or has failed, the slaves will not get new images . At this time there is no reelection support. Using this mode only makes sense if you have a ADS Lite display always running or is active using the time this instance is running. <br>
+For example: you have ADS Lite display connected to your monitor and its used as the standby display when your computer is not awake or is disconnected from the monitor, if you run your computer as a slave the image on the standby display will be displayed on your computer.<br>
+NOTE: There is no support for Sync Pulses at this moment so the display will not be in step with the master. This will be added soonish
+```json
+{
+  "sequenziaHost": "seq.moe",
+  "staticLoginKey": "YOURLOGINKEY",
+  "displayName": "Desk Left",
+  "refreshTimeMin" : 5,
+  "webMode": true,
+  "slave": true
+}
+```
+You can use this with cron tasks, `webMode: true` and `slave: ` must be outside the schedule block!****
+### Standard Mode
+This will use the standard request and download the image for your wallpaper
 ```json
 {
   "sequenziaHost": "seq.moe",
@@ -132,11 +174,43 @@ From 6PM to 6AM
   ]
 }
 ```
+## Timed Swap
+This uses the ADS Lite displaySwap system, more useful if your use webMode and master/slave but is compatible will all modes.
+```text
+From 5AM to 6:30PM
+    Display Images From the "Desk Right" device
+From 6:30PM to 5AM
+    Display Images From the "Desk Left" device
+```
+```json
+{
+  "sequenziaHost": "seq.moe",
+  "staticLoginKey": "YOURLOGINEY",
+  "refreshTimeMin" : 5,
+  "webMode": true,
+  "slave": true,
+  
+  "displaySwap": [
+    {
+      "displayName": "Desk Right",
+      "swapTime": 5
+    },
+    {
+      "displayName": "Desk Left",
+      "swapTime": 18.5
+    }
+  ]
+}
+```
+
 Note: use -c configfile.json to overide the default config.json and use -d to disable the automatic refresh
 ## Command Line Options
 ### -c or --config
 Specify a alternative config file, location is based from the current working directory
 ### -d or --disableTimer
-Run On-Demand, will use the config options and will not start the interval run
+Run On-Demand, will use the config options and will not start the interval run.
+There is a 2-minute max timeout, so if it gets stuck in the background it will be killed after 2 minutes
 ### -j (index) or --runJob (index)
-Run On-Demand Cron Schedule, The (index) number is the cron job in the "schedule" that will be ran.
+Run On-Demand Cron Schedule, The (index) number is the cron job in the "schedule" that will be run.
+### -w path or --wallpaperStorage path
+Use an alternative path for storage of wallpapers that are being set this is useful for environments where you are not given a relative path, The cookies file will also be stored there aswell.

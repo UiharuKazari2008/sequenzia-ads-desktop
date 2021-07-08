@@ -12,6 +12,8 @@ const { hideBin } = require('yargs/helpers');
 const cron = require('node-cron');
 const glob = require('glob');
 const rimraf = require('rimraf');
+const pageres = require('pageres');
+const moment = require('moment');
 
 const cliArgs = yargs(hideBin(process.argv))
     .option('config', {
@@ -29,16 +31,28 @@ const cliArgs = yargs(hideBin(process.argv))
         type: 'boolean',
         description: 'Disable Automatic Refresh'
     })
+    .option('wallpaperStorage', {
+        alias: 'w',
+        type: 'string',
+        description: 'Alternative Path for wallpaper storage, useful for environments where relative path is not available'
+    })
     .argv
 
 let configFileLocation = path.join(path.resolve(process.cwd(), './config.json'));
-const wallpaperLocation = path.join(path.resolve(process.cwd(), './.ads-wallpaper'));
+const wallpaperLocation = path.join(path.resolve((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), './.ads-wallpaper'));
+const cookieLocation = path.join(path.resolve((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), './.ads-cookie.json'));
 if (cliArgs.config) { configFileLocation = path.join(path.resolve(process.cwd(), `./${cliArgs.config}`)) }
 const config = require(configFileLocation);
 const baseURL = `https://${config.sequenziaHost}`;
 
 async function loginValidate (key, cb) {
     try {
+        if (fs.existsSync(cookieLocation)) {
+            const cookieJarStored = JSON.parse(fs.readFileSync(cookieLocation).toString("utf8"));
+            CookieJar.fromJSON(cookieJarStored).getCookiesSync(baseURL).forEach((cookie) => {
+                cookieJar.setCookieSync(cookie.toString(), baseURL);
+            })
+        }
         const test = await got(`${baseURL}/ping`, {cookieJar, dnsLookupIpVersion: 'ipv4'});
         if (test.body && test.body.includes('Pong')) {
             cb(true);
@@ -50,6 +64,7 @@ async function loginValidate (key, cb) {
                     setCookie(c, baseURL);
                 });
                 console.log('Login successful!');
+                fs.writeFileSync(cookieLocation, JSON.stringify(cookieJar.toJSON()));
                 cb(true);
             } else {
                 console.log('Login Failed!')
@@ -66,20 +81,23 @@ async function loginValidate (key, cb) {
 }
 function requestBuilder(params) {
     let _opts = [];
-    if (params.location) { if (params.location.includes(":")) { _opts.push(['folder', params.location]) ;} else { _opts.push(['channel', params.location]); } }
-    if (params.albumId) { _opts.push(['album', params.albumId]); }
-    if (params.searchQuery) { _opts.push(['search', params.searchQuery]); }
-    if (params.favoritesOnly) { _opts.push(['pins', `true`]); }
-    if (params.enableNSFW) { _opts.push(['nsfw', `true`]); }
-    if (params.numberOfDaysToSearch) { _opts.push(['numdays', params.numberOfDaysToSearch]); }
-    if (params.ratioQuery) { _opts.push(['ratio', params.ratioQuery]); } else if (params.wideScreenOnly) { _opts.push(['ratio', `0.01-1`]); }
-    if (params.minimumResolution) { _opts.push(['minres', params.minimumResolution]); }
-    if (params.minimumHeight) { _opts.push(['minhres', params.minimumHeight]); }
-    if (params.minimumWidth) { _opts.push(['minwres', params.minimumWidth]); }
-    if (params.colorQuery) { _opts.push(['color', params.colorQuery]); } else if (params.onlyDarkImages) { _opts.push(['dark', 'true']); } else if (params.onlyLightImages) { _opts.push(['dark', 'false']); }
-    if (params.displayName) { _opts.push(['displayname', `ADSMicro-${params.displayName}`]); } else { _opts.push(['displayname', 'ADSMicro-Untitled']); }
-    _opts.push(['nocds', 'true'])
-    if (params.extraOptions && params.extraOptions.length > 2) { _opts.push(params.extraOptions); }
+    if (config.slave === undefined) {
+        if (params.location) { if (params.location.includes(":")) { _opts.push(['folder', params.location]) ;} else { _opts.push(['channel', params.location]); } }
+        if (params.albumId) { _opts.push(['album', params.albumId]); }
+        if (params.searchQuery) { _opts.push(['search', params.searchQuery]); }
+        if (params.favoritesOnly) { _opts.push(['pins', `true`]); }
+        if (params.enableNSFW) { _opts.push(['nsfw', `true`]); }
+        if (params.numberOfDaysToSearch) { _opts.push(['numdays', params.numberOfDaysToSearch]); }
+        if (params.ratioQuery) { _opts.push(['ratio', params.ratioQuery]); } else if (params.wideScreenOnly) { _opts.push(['ratio', `0.01-1`]); }
+        if (params.minimumResolution) { _opts.push(['minres', params.minimumResolution]); }
+        if (params.minimumHeight) { _opts.push(['minhres', params.minimumHeight]); }
+        if (params.minimumWidth) { _opts.push(['minwres', params.minimumWidth]); }
+        if (params.colorQuery) { _opts.push(['color', params.colorQuery]); } else if (params.onlyDarkImages) { _opts.push(['dark', 'true']); } else if (params.onlyLightImages) { _opts.push(['dark', 'false']); }
+        if (params.extraOptions && params.extraOptions.length > 2) { _opts.push(params.extraOptions); }
+    }
+    if (params.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? params.displayName : `ADSMicro-${params.displayName}`]); } else if (config.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? config.displayName : `ADSMicro-${config.displayName}`]); } else { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? 'Untitled' : 'ADSMicro-Untitled']); }
+    if (config.slave && config.webMode) { _opts.push(['displaySlave', `true`]); }
+    _opts.push(['nocds', 'true']);
     return _opts;
 }
 async function getImage(opts) {
@@ -111,21 +129,95 @@ async function getImage(opts) {
                 console.error(e.response.body);
             }
         } else {
-            console.error('Did not a valid resonse for the server, please report this!');
+            console.error('Did not a valid response for the server, please report this!');
         }
     } catch (error) {
         console.error(`Failed to get response from Sequenzia!`)
         console.error(error.response.body);
     }
 }
+async function getWebCapture(opts) {
+    try {
+        const refreshURL = `${baseURL}/ads-micro`;
+        let queryString = '';
+        if (opts) { await opts.forEach((q,i,a) => { queryString += `${q[0]}=${q[1]}${(i !== a - 1) ? '&' : ''}` }); }
+        const _url = `${refreshURL}?${queryString}`
+        try {
+            const files = await glob.sync(`${wallpaperLocation}*`)
+            const _filename = `./.ads-wallpaper_${new Date().getTime()}`
+
+            const cookies = cookieJar.getCookiesSync(baseURL).map(c => c.toString());
+            const pageRequest = new pageres({
+                delay: 1,
+                timeout: 15,
+                cookies: cookies,
+                filename: _filename
+            })
+            pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], {crop: true});
+            pageRequest.dest((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd());
+            pageRequest.run().then(async sc => {
+                await wallpaper.set(path.join((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), sc[0].filename));
+                files.forEach(f => { rimraf.sync(f) });
+            })
+        } catch (e) {
+            console.error(`Failed to capture image from Sequenzia!`)
+            console.error(e);
+        }
+    } catch (error) {
+        console.error(`Failed to get response from Sequenzia!`)
+        console.error(error);
+    }
+}
 async function getNextImage (_config) {
     await loginValidate(config.staticLoginKey, (async ok => {
         if (ok) {
-            await getImage(requestBuilder(_config));
+            if (config.displaySwap) {
+                const swapTimes = config.displaySwap
+                let _dssT1 = undefined;
+                let _dssT2 = undefined;
+                let _dssT1B = undefined;
+                let _dssT2B = undefined;
+                let _selectedIndex = 0;
+                let _dsT1_1 = (swapTimes[0].swapTime.toString().includes('.')) ? parseInt(swapTimes[0].swapTime.toString().split(".")[0]) : swapTimes[0].swapTime;
+                let _dsT2_1 = (swapTimes[1].swapTime.toString().includes('.')) ? parseInt(swapTimes[1].swapTime.toString().split(".")[0]) : swapTimes[1].swapTime;
+                let _dsT1_2 = (swapTimes[0].swapTime.toString().includes('.')) ? ((parseFloat(swapTimes[0].swapTime) - _dsT1_1) * 60).toFixed(0) : 0;
+                let _dsT2_2 = (swapTimes[1].swapTime.toString().includes('.')) ? ((parseFloat(swapTimes[1].swapTime) - _dsT2_1) * 60).toFixed(0) : 0;
+
+                _dssT1B = moment().hours(_dsT1_1).minutes(_dsT1_2).seconds(0).milliseconds(0).valueOf();
+                _dssT2B = moment().hours(_dsT2_1).minutes(_dsT2_2).seconds(0).milliseconds(0).valueOf();
+
+                if (Date.now() >= _dssT1B) {
+                    _dssT1 = moment().add(1, 'day').hours(_dsT1_1).minutes(_dsT1_2).seconds(0).milliseconds(0).valueOf();
+                    _dssT2 = moment().add(1, 'day').hours(_dsT2_1).minutes(_dsT2_2).seconds(0).milliseconds(0).valueOf();
+                } else {
+                    _dssT1 = moment().hours(_dsT1_1).minutes(_dsT1_2).seconds(0).milliseconds(0).valueOf();
+                    _dssT2 = moment().add(1, 'day').hours(_dsT2_1).minutes(_dsT2_2).seconds(0).milliseconds(0).valueOf();
+                }
+
+                if (_dssT1 && _dssT2) {
+                    if (Date.now() >= _dssT1B || Date.now() <= _dssT2B) {
+                        _selectedIndex = 1;
+                    }
+                } else {
+                    console.error(`Failed to setup display auto swap : No time setup`);
+                }
+
+                if (config.webMode) {
+                    await getWebCapture(requestBuilder(swapTimes[_selectedIndex]));
+                } else {
+                    await getImage(requestBuilder(swapTimes[_selectedIndex]));
+                }
+            } else {
+                if (config.webMode) {
+                    await getWebCapture(requestBuilder(_config));
+                } else {
+                    await getImage(requestBuilder(_config));
+                }
+            }
         } else {
-            console.log('Sorry, Failed to Login')
+            console.log('Sorry, Failed to Login');
         }
-    }))
+    }));
 }
 
 let refreshTimer;
@@ -137,8 +229,8 @@ if (config.schedule && !cliArgs.disableTimer) {
         config.schedule.forEach((j, i) => {
             if (cron.validate(j.cron)) {
                 console.error(`Cron Schedule #${i} Registered!`)
-                cron.schedule(j.cron, () => {
-                    getNextImage(j)
+                cron.schedule(j.cron, async () => {
+                    await getNextImage(j);
                 })
             } else {
                 console.error(`Cron Schedule #${i} is Invalid, Please correct to use this job!`)
@@ -146,8 +238,9 @@ if (config.schedule && !cliArgs.disableTimer) {
         })
     }
 } else if (cliArgs.disableTimer) {
-    console.error(`On-Demand Running...`)
-    getNextImage(config)
+    console.error(`On-Demand Running...`);
+    getNextImage(config);
+    setTimeout(() => { process.exit(0) }, 2 * 60 * 1000)
 } else if (config.refreshTimeMin) {
     if (!isNaN(config.refreshTimeMin)) {
         refreshTimer = config.refreshTimeMin * 60 * 1000;
@@ -163,8 +256,8 @@ if (config.schedule && !cliArgs.disableTimer) {
     }
     if (refreshTimer) {
         getNextImage(config).then(r => {
-            setInterval(() => {
-                getNextImage(config)
+            setInterval(async () => {
+                await getNextImage(config)
             }, refreshTimer);
             console.log(`Registered Enabled, Every ${config.refreshTimeMin} Minutes`);
         });
