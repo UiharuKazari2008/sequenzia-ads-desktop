@@ -45,9 +45,9 @@ This mode will request a micro version of the standard ADS Lite system, this wil
 #### Master/Slave Mode
 In a master / slave relationship you can set a display as the master with `slave: false` and this instance will be we the display that generates the actual request and will write to the history. <br>
 All Slave instances will retrieve the image that has been set on the master, effectively synchronising all displays.<br>
-NOTE: Just like ADS Lite if the master is offline or has failed, the slaves will not get new images . At this time there is no reelection support. Using this mode only makes sense if you have a ADS Lite display always running or is active using the time this instance is running. <br>
+<b>NOTE: Just like ADS Lite if the master is offline or has failed, the slaves will not get new images . At this time there is no reelection support. Using this mode only makes sense if you have a ADS Lite display always running or is active using the time this instance is running. <br></b>
 For example: you have ADS Lite display connected to your monitor and its used as the standby display when your computer is not awake or is disconnected from the monitor, if you run your computer as a slave the image on the standby display will be displayed on your computer.<br>
-NOTE: There is no support for Sync Pulses at this moment so the display will not be in step with the master. This will be added soonish
+<b>NOTE: when using slave mode, the `refreshTimeMin` is ignored and will get in sync with the master timer, only in cron mode will the sync pulse be ignored</b> 
 ```json
 {
   "sequenziaHost": "seq.moe",
@@ -177,9 +177,9 @@ From 6PM to 6AM
 ## Timed Swap
 This uses the ADS Lite displaySwap system, more useful if your use webMode and master/slave but is compatible will all modes.
 ```text
-From 5AM to 6:30PM
+Until 6:30PM
     Display Images From the "Desk Right" device
-From 6:30PM to 5AM
+Until 5AM
     Display Images From the "Desk Left" device
 ```
 ```json
@@ -193,11 +193,11 @@ From 6:30PM to 5AM
   "displaySwap": [
     {
       "displayName": "Desk Right",
-      "swapTime": 5
+      "swapTime": 18.5
     },
     {
       "displayName": "Desk Left",
-      "swapTime": 18.5
+      "swapTime": 5
     }
   ]
 }
