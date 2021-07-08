@@ -339,6 +339,7 @@ async function getNextImage (_config) {
             setTimeout(() => { getNextImage(config); }, 60000);
         } else {
             console.log('Sorry, Failed to Login');
+            process.exit(1);
         }
     }));
 }
