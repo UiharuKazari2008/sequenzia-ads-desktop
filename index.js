@@ -16,6 +16,8 @@ const pageres = require('pageres');
 const moment = require('moment');
 let syncedTimer = false;
 let syncedInterval = undefined;
+let syncedIndex = undefined;
+let _selectedIndex = 0;
 
 const cliArgs = yargs(hideBin(process.argv))
     .option('config', {
@@ -211,13 +213,16 @@ async function getWebCapture(opts) {
                     console.log("Wallpaper updated!");
                     if (cliArgs.disableTimer) {
                         process.exit(0);
-                    } else if (config.webMode && config.slave && !syncedTimer && !config.schedule) {
+                    } else if (config.webMode && config.slave && (!syncedTimer || syncedIndex !== _selectedIndex) && !config.schedule) {
                         const response = await got(`${baseURL}/ambient-history?command=timeSync&screen=0&json=true&${queryString}`, { cookieJar, dnsLookupIpVersion: 'ipv4' });
                         if (response.body && response.body.includes('delta')) {
                             const json = JSON.parse(response.body);
                             if (json.delta && json.interval && (Math.abs(json.delta) < parseInt(json.interval.toString()) * 60000)) {
                                 let nextRefreshTime = (json.interval * 60000) + json.delta;
                                 console.log(`Got Sync Pulse : ${(nextRefreshTime / 60000).toFixed(2)} Min, Remote Interval is ${json.interval} Min`);
+                                if (syncedIndex !== _selectedIndex) {
+                                    syncedIndex = _selectedIndex;
+                                }
                                 syncedTimer = true;
                                 syncedInterval = json.interval * 60000;
                                 setTimeout(async () => {
@@ -299,7 +304,7 @@ async function getNextImage (_config) {
                 let _dssT2 = undefined;
                 let _dssT1B = undefined;
                 let _dssT2B = undefined;
-                let _selectedIndex = 0;
+
                 let _dsT1_1 = (swapTimes[0].swapTime.toString().includes('.')) ? parseInt(swapTimes[0].swapTime.toString().split(".")[0]) : swapTimes[0].swapTime;
                 let _dsT2_1 = (swapTimes[1].swapTime.toString().includes('.')) ? parseInt(swapTimes[1].swapTime.toString().split(".")[0]) : swapTimes[1].swapTime;
                 let _dsT1_2 = (swapTimes[0].swapTime.toString().includes('.')) ? ((parseFloat(swapTimes[0].swapTime) - _dsT1_1) * 60).toFixed(0) : 0;
@@ -311,6 +316,8 @@ async function getNextImage (_config) {
                     _selectedIndex = 1;
                 } else if (Date.now() <= _dssT2B) {
                     _selectedIndex = 1;
+                } else {
+                    _selectedIndex = 0;
                 }
 
                 if (config.webMode) {
