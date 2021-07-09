@@ -72,9 +72,9 @@ You can use this with cron tasks, `webMode: true` and `slave: ` must be outside 
 }
 ```
 ```
-padding: [left, right, bottom] // Used to add extra padding for taskbar or dock
+padding: [left, right, bottom, none] // Used to add extra padding for taskbar or dock
 padding_value: [valid css mesument] // Manual Adjustment of the padding
-overlay: [left, right, bottom] // Added classic overlay gradiant from ADS Lite
+overlay: [left, right, bottom, none] // Added classic overlay gradiant from ADS Lite
 color: [CSS Color Name, hex, rgb()] // Change the color of the text, will overide auto coloring based on background
 info: [true, false] // Removed the image location data and move the logo to the right, you can also remove this property to do the same as true  
 ```

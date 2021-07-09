@@ -349,6 +349,7 @@ async function getNextImage (_config) {
                 let _dsT2_2 = (swapTimes[1].swapTime.toString().includes('.')) ? ((parseFloat(swapTimes[1].swapTime) - _dsT2_1) * 60).toFixed(0) : 0;
 
                 _dssT1B = moment().hours(_dsT1_1).minutes(_dsT1_2).seconds(0).milliseconds(0).valueOf();
+                _dssT2B = moment().hours(_dsT2_1).minutes(_dsT2_2).seconds(0).milliseconds(0).valueOf();
 
                 if (Date.now() >= _dssT1B) {
                     _selectedIndex = 1;
