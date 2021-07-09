@@ -59,6 +59,25 @@ For example: you have ADS Lite display connected to your monitor and its used as
 }
 ```
 You can use this with cron tasks, `webMode: true` and `slave: ` must be outside the schedule block!****
+#### Appearance Settings
+```json
+{
+"appearance": {
+    "padding": "bottom",
+    "padding_value": "1.25em",
+    "overlay": "none",
+    "color": "#7d0b00",
+    "info": false
+  }
+}
+```
+```
+padding: [left, right, bottom] // Used to add extra padding for taskbar or dock
+padding_value: [valid css mesument] // Manual Adjustment of the padding
+overlay: [left, right, bottom] // Added classic overlay gradiant from ADS Lite
+color: [CSS Color Name, hex, rgb()] // Change the color of the text, will overide auto coloring based on background
+info: [true, false] // Removed the image location data and move the logo to the right, you can also remove this property to do the same as true  
+```
 ### Standard Mode
 This will use the standard request and download the image for your wallpaper
 ```json

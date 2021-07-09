@@ -204,7 +204,45 @@ async function getWebCapture(opts) {
                 cookies: cookies,
                 filename: _filename
             })
-            pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], {crop: true});
+            let extraCss = '';
+            if (config.appearance) {
+                if (config.appearance.padding) {
+                    switch (config.appearance.padding.toLowerCase()) {
+                        case "bottom":
+                            extraCss += `#BottomSestion { padding-bottom: ${(config.appearance.padding_value) ? config.appearance.padding_value : "1.25em"}; } `;
+                            break;
+                        case "left":
+                            extraCss += `#BottomSestion { padding-left: ${(config.appearance.padding_value) ? config.appearance.padding_value : "1.25em"}; } `;
+                            break;
+                        case "right":
+                            extraCss += `#BottomSestion { padding-right: ${(config.appearance.padding_value) ? config.appearance.padding_value : "1.25em"}; } `;
+                            break;
+                    }
+                }
+                if (config.appearance.overlay) {
+                    switch (config.appearance.overlay.toLowerCase()) {
+                        case "bottom":
+                            extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: block!important; } #overlayRight { display: none!important; } #overlayLeft { display: none!important; } `;
+                            break;
+                        case "left":
+                            extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: none!important; } #overlayRight { display: none!important; } #overlayLeft { display: block!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
+                            break;
+                        case "right":
+                            extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: none!important; } #overlayRight { display: block!important; } #overlayLeft { display: none!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
+                            break;
+                        default:
+                            extraCss += `#overlayBg { display: none!important; } #overlayRight { display: none!important; } #overlayLeft { display: block!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
+                            break;
+                    }
+                }
+                if (config.appearance.color) {
+                    extraCss += `#content-wrapper { color: ${config.appearance.color}; }`;
+                }
+                if (config.appearance.info !== undefined && config.appearance.info === false) {
+                    extraCss += `#dataInfo { display: none!important; } #logoStart { margin-left: auto; flex-grow: unset!important; }`;
+                }
+            }
+            pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], { crop: true, css: extraCss });
             pageRequest.dest((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd());
             pageRequest.run()
                 .then(async sc => {
