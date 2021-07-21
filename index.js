@@ -43,7 +43,7 @@ const cliArgs = yargs(hideBin(process.argv))
     })
     .argv
 
-console.log(`Sequenzia uADS for NodeJS - "Its Simple"\n`);
+console.log(`Sequenzia uDWS for NodeJS - "Its Simple"\n`);
 
 let configFileLocation = path.join(path.resolve(process.cwd(), './config.json'));
 const wallpaperLocation = (cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd();
@@ -115,7 +115,6 @@ function requestBuilder(params) {
     if (params.nohistory) { _opts.push(['nohistory', 'true']); } else { _opts.push(['nohistory', 'false']); }
     if (params.screen) { _opts.push(['screen', params.screen]); } else { _opts.push(['screen', '0']); }
     _opts.push(['nocds', 'true']);
-    console.log(_opts);
     return _opts;
 }
 async function getImage(opts, extra) {
@@ -157,8 +156,8 @@ async function getImage(opts, extra) {
                                 } else {
                                     if (!extra) {
                                         await wallpaper.set(_wallpaperPath);
-                                        files.forEach(f => {
-                                            rimraf.sync(f)
+                                        files.forEach(file => {
+                                            rimraf.sync(file)
                                         });
                                         if (cliArgs.disableTimer) {
                                             process.exit(0);
@@ -292,8 +291,8 @@ async function getWebCapture(opts, filename, extra) {
                 .then(async sc => {
                     if (!extra) {
                         await wallpaper.set(path.join(path.resolve(wallpaperLocation), sc[0].filename));
-                        files.forEach(f => {
-                            rimraf.sync(f)
+                        files.forEach(file => {
+                            rimraf.sync(file)
                         });
                         console.log("Wallpaper updated!");
                         if (cliArgs.disableTimer) {
@@ -444,7 +443,7 @@ if (config.folders) {
     loginValidate(config.staticLoginKey, (async ok => {
         if (ok) {
             for (const f of config.folders) {
-                const files = (!f.keepItems && !f.incimentalFileNames) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), f.path, './ads-wallpaper')}*`) : undefined;
+                const files = (!f.keepItems && !f.incimentalFileNames) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), f.path, './ads-wallpaper')}*`) : [];
                 const num = (f.count) ? parseInt(f.count.toString()) : 5;
                 if (!fs.existsSync(path.join(path.resolve(wallpaperLocation), f.path))){
                     fs.mkdirSync(path.join(path.resolve(wallpaperLocation), f.path));
@@ -464,8 +463,8 @@ if (config.folders) {
                     await getImage(requestBuilder(f), opts);
                 }
                 if (!f.keepItems && !f.incimentalFileNames) {
-                    files.forEach(f => {
-                        rimraf.sync(f)
+                    files.forEach(file => {
+                        rimraf.sync(file)
                     });
                 }
             }

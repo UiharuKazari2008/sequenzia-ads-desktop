@@ -1,5 +1,7 @@
-# Sequenzia ADS Micro
-Simple and Lightweight way to get random wallpapers from Sequenzia (Requires Login)
+# Sequenzia Dynamic Wallpaper Service (microDWS)
+Simple and Lightweight way to get random wallpapers from Sequenzia (Requires Login)<br>
+New to Sequenzia? Create your own deployment https://docs.acr.moe/index.php?title=Build_Sequenzia_2_Server
+
 ## Authentication
 You must get a static Login Key from Sequenzia<br>
 Got to the user menu > Authentication > Static Login Key > Generate or Copy the key<br>
@@ -11,6 +13,8 @@ Once Installed you can run from PowerShell or Terminal<br>
 Example Output:<br>
 ```shell
 ads-micro
+Sequenzia uDWS for NodeJS - "Its Simple"
+
 Logging in...
 Login successful!
 Registered Enabled, Every 5 Minutes
@@ -20,18 +24,15 @@ Registered Enabled, Every 5 Minutes
 Current best practice is to use "Unmanaged Folder Mode" and use the folder with the operating systems built in wallpaper slideshow feature<br>
 Unless you are using slave display mode or care about things happening on in a specific way
 ### Windows
-Use Task Scheduler and add Task like so...<br>
-Program/script: `PowerShell.exe`<br>
-Add arguments: `-nologo -noninteractive  -WindowStyle Hidden -command "&{Get-Process -Name node | Stop-Process; npx ads-micro}"`<br>
-Start in: `C:\Users\ykaza\Pictures\SeqADS`<br>
-
-Your Start in folder should be a folder that will contain your config files and will store temporary files and will store images in folder mode.<br>
-You can also options like `-c` to use an alternative config file ..<br>
-`-nologo -noninteractive  -WindowStyle Hidden -command "&{Get-Process -Name node | Stop-Process; npx ads-micro -c night.json}"`<br>
-
+Use Task Scheduler and add Task like so...
+* Program/script: `PowerShell.exe`
+* Add arguments: `-nologo -noninteractive  -WindowStyle Hidden -command "& {Start-Transcript run.txt; Get-Process -Name node | Stop-Process; npx ads-micro}"`
+  * Your Start in folder should be a folder that will contain your config files and will store temporary files and will store images in folder mode.
+  * You can also options like `-c` to use an alternative config file: `...; npx ads-micro -c night.json}"`
+* Start in: `C:\Users\ykaza\Pictures\SeqADS`
 ### MacOS / Linux
 Both MacOS and Linux users are suggested to use cron<br>
-`*/5 0-2,9-23 * * * cd /Users/kazari/Documents/SeqADS/; pkill -f "sequenzia-ads-micro"; /usr/local/bin/npx sequenzia-ads-micro -d > /dev/null 2>&1`
+`*/5 0-2,9-23 * * * cd /Users/kazari/Documents/SeqADS/; pkill -f "sequenzia-ads-micro"; /usr/local/bin/npx ads-micro -d > /dev/null 2>&1`
 <b>Cron Warning: You should absolute paths or append `cd /folder/folder; ...`</b>
 
 # Configuration - config.json
@@ -78,18 +79,28 @@ You can use this with cron tasks, `webMode: true` and `slave: ` must be outside 
   }
 }
 ```
-```
-padding: [left, right, bottom, none] // Used to add extra padding for taskbar or dock
-padding_value: [valid css mesument] // Manual Adjustment of the padding
-overlay: [left, right, bottom, none] // Added classic overlay gradiant from ADS Lite
-shadow: [true, false] // Add/Remove Dropshadow on portait images over the blurred background
-blur: '10' or 'false' // Blue Value for Filter on Backgrounds or portrait images
-saturate: 2 // Saturation Value for Filter on Backgrounds or portrait images
-brightness: 1.1 // Brightness Value for Filter on Backgrounds or portrait images
-contrast: 1  // Contrast Value for Filter on Backgrounds or portrait images
-color: [CSS Color Name, hex, rgb()] // Change the color of the text, will overide auto coloring based on background
-info: [true, false] // Removed the image location data and move the logo to the right, you can also remove this property to do the same as true  
-```
+
+* padding: [left, right, bottom, none]
+    * Used to add extra padding for taskbar or dock
+* padding_value: [valid css measurement]
+  * Manual Adjustment of the padding
+* overlay: [left, right, bottom, none]
+  * Adds classic overlay gradiant from ADS Lite
+* shadow: [true, false]
+  * Add/Remove Dropshadow on portrait images over the blurred background
+* blur: '10' or 'false'
+  * Blur Value for Filter on Backgrounds or portrait images
+* saturate: 2
+    * Saturation Value for Filter on Backgrounds or portrait images
+* brightness: 1.1
+  * Brightness Value for Filter on Backgrounds or portrait images
+* contrast: 1
+  * Contrast Value for Filter on Backgrounds or portrait images
+* color: [CSS Color Name, hex, rgb()]
+  * Change the color of the text, will override auto coloring based on background
+* info: [true, false]
+  * Removed the image location data and move the logo to the right, you can also remove this property to do the same as true
+
 ## Direct Mode
 This will use the standard request and download the image for your wallpaper or folder
 ```json
@@ -103,8 +114,8 @@ This will use the standard request and download the image for your wallpaper or 
 }
 ```
 # Options
-## Query (Recommended)
-Use a exported URI from the "Send to App" / "Export Results" Option from Sequenzia Web<br>
+## Sequenzia Shortcut Query (Recommended)
+Use a exported text from the "Send to App" / "Export Results" Option from Sequenzia Web<br>
 This URI is used for Apple Shortcuts and can be used here aswell
 ```json
 {
@@ -256,13 +267,19 @@ You can use webkit or direct mode and webkit appearance options like normal, you
 }
 ```
 ## Options
-```
-path: String // Folder Name in relation to the current directory or wallpaper path option
-count: Interget // Number of Images to download / create
-nohistory: [true, false] // Disables Adding Images to the Display History
-screen: Interger // Screen/Monitor Number, 0 = Wallpaper/Main or 1 = Lockscreen/Secoundary
-incimentalFileNames: [true, false] // Ensured that all files names are the same and will overwrite old files (For OSs that are not smart about file management, Windows)  
-```
+* path: String
+    * Folder Name in relation to the current directory or wallpaper path option
+* count: Interget
+  * Number of Images to download / create
+* nohistory: [true, false]
+  * Disables Adding Images to the Display History
+* screen: Interger
+  * Screen/Monitor Number, 0 = Wallpaper/Main or 1 = Lockscreen/Secoundary
+* keepItems: [true, false]
+  * Do not delete any old images after new images are added
+* incimentalFileNames: [true, false]
+  * Ensured that all files names are the same and will overwrite old files
+  * Mainly for OSs that are not smart about file management, **cough** Windows  
 
 # Cron Schedules
 Please use [Cron Guru](https://crontab.guru/) for formatting, Incorrect cron job definitions can and will be disastrous!<br>
@@ -321,8 +338,8 @@ Until 5AM
 }
 ```
 
-Note: use -c configfile.json to overide the default config.json and use -d to disable the automatic refresh
 ## Command Line Options
+Note: use -c configfile.json to overide the default config.json and use -d to disable the automatic refresh
 ### -c or --config
 Specify a alternative config file, location is based from the current working directory
 ### -d or --disableTimer
