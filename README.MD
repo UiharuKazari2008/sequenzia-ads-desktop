@@ -16,9 +16,26 @@ Login successful!
 Registered Enabled, Every 5 Minutes
 726784923150712832 - false - Cosplay/General/seq - June 28, 2020
 ```
+## Automation
+Current best practice is to use "Unmanaged Folder Mode" and use the folder with the operating systems built in wallpaper slideshow feature<br>
+Unless you are using slave display mode or care about things happening on in a specific way
+### Windows
+Use Task Scheduler and add Task like so...<br>
+Program/script: `PowerShell.exe`<br>
+Add arguments: `-nologo -noninteractive  -WindowStyle Hidden -command "&{Get-Process -Name node | Stop-Process; npx ads-micro}"`<br>
+Start in: `C:\Users\ykaza\Pictures\SeqADS`<br>
+
+Your Start in folder should be a folder that will contain your config files and will store temporary files and will store images in folder mode.<br>
+You can also options like `-c` to use an alternative config file ..<br>
+`-nologo -noninteractive  -WindowStyle Hidden -command "&{Get-Process -Name node | Stop-Process; npx ads-micro -c night.json}"`<br>
+
+### MacOS / Linux
+Both MacOS and Linux users are suggested to use cron<br>
+`*/5 0-2,9-23 * * * cd /Users/kazari/Documents/SeqADS/; pkill -f "sequenzia-ads-micro"; /usr/local/bin/npx sequenzia-ads-micro -d > /dev/null 2>&1`
+<b>Cron Warning: You should absolute paths or append `cd /folder/folder; ...`</b>
 
 # Configuration - config.json
-## New Web Mode (Generator)
+## WebKit Mode
 This mode will request a micro version of the standard ADS Lite system, this will generate an image to allow for portrait images to be displayed correctly
 ### Independent Mode
 ```json
@@ -29,25 +46,15 @@ This mode will request a micro version of the standard ADS Lite system, this wil
   "webMode": true,
 
   "refreshTimeMin": 5,
-
-  "location": "Seq1:Art:*",
-  "numberOfDaysToSearch": "365",
-
-  "extraOptions": "",
-  "favoritesOnly": false,
-  "enableNSFW": false,
-  "minimumResolution": "1080",
-  "wideScreenOnly": true,
-  "onlyDarkImages": false,
-  "onlyLightImages": false
+  "query" : "folder=art%3A*&nsfw=true&ratio=0.01-0.9&minwres=1000"
 }
 ```
 ### Master/Slave Mode
 In a master / slave relationship you can set a display as the master with `slave: false` and this instance will be we the display that generates the actual request and will write to the history. <br>
 All Slave instances will retrieve the image that has been set on the master, effectively synchronising all displays.<br>
-<b>NOTE: Just like ADS Lite if the master is offline or has failed, the slaves will not get new images . At this time there is no reelection support. Using this mode only makes sense if you have a ADS Lite display always running or is active using the time this instance is running. <br></b>
+<b>NOTE: Just like ADS Lite if the master is offline or has failed, the slaves will not get new images. At this time there is no reelection support. Using this mode only makes sense if you have a ADS Lite display always running or is active using the time this instance is running. <br></b>
 For example: you have ADS Lite display connected to your monitor and its used as the standby display when your computer is not awake or is disconnected from the monitor, if you run your computer as a slave the image on the standby display will be displayed on your computer.<br>
-<b>NOTE: when using slave mode, the `refreshTimeMin` is ignored and will get in sync with the master timer, only in cron mode will the sync pulse be ignored</b> 
+<b>NOTE: when using slave mode, the `refreshTimeMin` and all other options are ignored and will get in sync with the master configuration and timer, only in cron / on-demand mode will the sync pulse be bypassed</b> 
 ```json
 {
   "sequenziaHost": "seq.moe",
@@ -59,7 +66,7 @@ For example: you have ADS Lite display connected to your monitor and its used as
 }
 ```
 You can use this with cron tasks, `webMode: true` and `slave: ` must be outside the schedule block!****
-### Appearance Settings
+### Appearance Options
 ```json
 {
 "appearance": {
@@ -75,50 +82,47 @@ You can use this with cron tasks, `webMode: true` and `slave: ` must be outside 
 padding: [left, right, bottom, none] // Used to add extra padding for taskbar or dock
 padding_value: [valid css mesument] // Manual Adjustment of the padding
 overlay: [left, right, bottom, none] // Added classic overlay gradiant from ADS Lite
+shadow: [true, false] // Add/Remove Dropshadow on portait images over the blurred background
+blur: '10' or 'false' // Blue Value for Filter on Backgrounds or portrait images
+saturate: 2 // Saturation Value for Filter on Backgrounds or portrait images
+brightness: 1.1 // Brightness Value for Filter on Backgrounds or portrait images
+contrast: 1  // Contrast Value for Filter on Backgrounds or portrait images
 color: [CSS Color Name, hex, rgb()] // Change the color of the text, will overide auto coloring based on background
 info: [true, false] // Removed the image location data and move the logo to the right, you can also remove this property to do the same as true  
 ```
-## Legacy Mode (Downloader)
-This will use the standard request and download the image for your wallpaper
+## Direct Mode
+This will use the standard request and download the image for your wallpaper or folder
 ```json
 {
   "sequenziaHost": "seq.moe",
   "staticLoginKey": "YOURLOGINKEY",
   "displayName": "Untitled",
-
   "refreshTimeMin": 5,
+  "query" : "folder=art%3A*&nsfw=true&ratio=0.01-0.9&minwres=1000"
 
-  "location": "Seq1:Art:*",
-  "numberOfDaysToSearch": "365",
-
-  "extraOptions": "",
-  "favoritesOnly": false,
-  "enableNSFW": false,
-  "minimumResolution": "1080",
-  "wideScreenOnly": true,
-  "onlyDarkImages": false,
-  "onlyLightImages": false
 }
 ```
-## Extra Options
-### Resolutions
+# Options
+## Query (Recommended)
+Use a exported URI from the "Send to App" / "Export Results" Option from Sequenzia Web<br>
+This URI is used for Apple Shortcuts and can be used here aswell
 ```json
 {
-  "minimumHeight": "1080"
-}
+  "query" : "folder=art%3A*&nsfw=true&ratio=0.01-0.9&minwres=1000"
+} 
+```
+## Manual Options (Advanced)
+### Location (Folder or Channel)
+```json
+{
+  "location": "Seq1:Art:*"
+} 
 ```
 or
 ```json
 {
-  "minimumWidth": "1920"
-}
-```
-You can set a minimum height and or width as well if you want strict minimum resolutions instead of the lose "minimumResolution"<br>
-### Ratio (Overrides wideScreenOnly)
-```json
-{
-  "ratioQuery": "0.01-0.9"
-}
+  "location": "678258482266"
+} 
 ```
 ### Album
 ```json
@@ -133,14 +137,96 @@ You can also set a album ID to only get images from an album<br>
   "searchQuery": "text:Twitter Image"
 }
 ```
-### Color Query (Overrides onlyDarkImages and onlyLightImages)
+### Favorites
+Get only your favorite images
+```json
+{
+  "favoritesOnly": true
+}
+```
+### Maximum Age
+Maximum Age of a image
+```json
+{
+  "numberOfDaysToSearch": "365"
+}
+```
+### Resolutions
+```json
+{
+  "minimumResolution": "1080"
+}
+```
+or
+```json
+{
+  "minimumHeight": "1080"
+}
+```
+or
+```json
+{
+  "minimumWidth": "1920"
+}
+```
+You can set a minimum height and or width as well if you want strict minimum resolutions instead of the loose "minimumResolution"<br>
+### Widescreen or Portrait Only
+```json
+{
+  "wideScreenOnly": true
+}
+```
+or
+```json
+{
+  "portraitOnly": true
+}
+```
+### Ratio (Advanced)
+```json
+{
+  "ratioQuery": "0.01-0.9"
+}
+```
+### Image Brightness
+```json
+{
+  "onlyDarkImages": true
+}
+```
+or
+```json
+{
+  "onlyLightImages": true
+}
+```
+### Color Query  (Advanced)
 ```json
 {
   "colorQuery": "0-195:0-199:0-200"
 }
 ```
 You can use the new color range or color selection, use the "color=" string directly from the URL in Sequenzia Web
-### Manual Options
+### NSFW Filter
+```json
+{
+  "enableNSFW": false
+}
+```
+or
+```json
+{
+  "enableNSFW": true
+}
+```
+or
+```json
+{
+  "enableNSFW": "only"
+}
+```
+This will only work if the results contain nsfw images
+### Extra Options (Advanced)
 ```json
 {
   "extraOptions": "options=value&option2=value"
@@ -149,10 +235,10 @@ You can use the new color range or color selection, use the "color=" string dire
 Allows for additional options that have not been yet implemented
 
 # Unmanaged Folder Mode
-Useing folder options will allow you to download/generate wallpapers that are saved to a folder without out any further action.<br>
+Using "folders" options will allow you to download/generate wallpapers that are saved to a folder without any further action.<br>
 This can be used with your operating systems build in slideshow options or other applications
 
-You can use web mode and appearance options like normal, you must specify webMode inside the folder. Appearance options can be placed in a folder to be applied to all images in that folder.
+You can use webkit or direct mode and webkit appearance options like normal, you must specify webMode inside the folder. Appearance options can be placed in a folder to be applied to all images in that folder.
 ```json
 {
   "sequenziaHost": "seq.moe",
@@ -164,16 +250,11 @@ You can use web mode and appearance options like normal, you must specify webMod
       "path": "Wallpapers",
       "webMode": true,
       "screen": "0",
-      "location": "seq:art:*",
-      "incimentalFileNames": true,
-      "favoritesOnly": true,
-      "enableNSFW": false,
-      "minimumResolution": "1200"
+      "query" : "folder=art%3A*&nsfw=true&ratio=0.01-0.9&minwres=1000"
     }
   ]
 }
 ```
-
 ## Options
 ```
 path: String // Folder Name in relation to the current directory or wallpaper path option
@@ -200,30 +281,12 @@ From 6PM to 6AM
     {
       "displayName": "PC Day",
       "cron": "*/15 5-17 * * *",
-      "location": "seq:art:*",
-      "numberOfDaysToSearch": "365",
-
-      "extraOptions": "",
-      "favoritesOnly": false,
-      "enableNSFW": false,
-      "minimumResolution": "1080",
-      "wideScreenOnly": true,
-      "onlyDarkImages": false,
-      "onlyLightImages": false
+      "query" : "folder=art%3A*&nsfw=true&ratio=0.01-0.9&minwres=1000&numdays=360"
     },
     {
       "displayName": "PC Night",
       "cron": "*/15 18-23,0-6 * * *",
-      "location": "seq:cosplay:*",
-      "numberOfDaysToSearch": "365",
-
-      "extraOptions": "",
-      "favoritesOnly": false,
-      "enableNSFW": false,
-      "minimumResolution": "1080",
-      "wideScreenOnly": true,
-      "onlyDarkImages": false,
-      "onlyLightImages": false
+      "query" : "folder=cosplay%3A*&nsfw=true&ratio=0.01-0.9&minwres=1000&numdays=360"
     }
   ]
 }

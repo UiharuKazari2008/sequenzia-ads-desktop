@@ -88,25 +88,34 @@ async function loginValidate (key, cb) {
 }
 function requestBuilder(params) {
     let _opts = [];
-    if (config.slave === undefined) {
+    if (config.slave === undefined || config.slave === false) {
+        if (params.query) {
+            if (params.query.includes('=')) {
+                _opts = params.query.split('&').filter(e => e.includes('=') && !e.includes('setscreen=')).map(a => a.split('=')).map(a => ([`${a[0]}`, `${a[1]}`]))
+            } else {
+                console.error("Invalid query: " + params.query);
+                process.exit(1);
+            }
+        }
         if (params.location) { if (params.location.includes(":")) { _opts.push(['folder', params.location]) ;} else { _opts.push(['channel', params.location]); } }
         if (params.albumId) { _opts.push(['album', params.albumId]); }
         if (params.searchQuery) { _opts.push(['search', params.searchQuery]); }
         if (params.favoritesOnly) { _opts.push(['pins', `true`]); }
-        if (params.enableNSFW) { _opts.push(['nsfw', `true`]); }
+        if (params.enableNSFW) { _opts.push(['nsfw', `${params.enableNSFW}`]); }
         if (params.numberOfDaysToSearch) { _opts.push(['numdays', params.numberOfDaysToSearch]); }
-        if (params.ratioQuery) { _opts.push(['ratio', params.ratioQuery]); } else if (params.wideScreenOnly) { _opts.push(['ratio', `0.01-1`]); }
+        if (params.ratioQuery) { _opts.push(['ratio', params.ratioQuery]); } else if (params.wideScreenOnly) { _opts.push(['ratio', `0.01-1`]); } else if (params.portraitOnly) { _opts.push(['ratio', `1.5-3`]); }
         if (params.minimumResolution) { _opts.push(['minres', params.minimumResolution]); }
         if (params.minimumHeight) { _opts.push(['minhres', params.minimumHeight]); }
         if (params.minimumWidth) { _opts.push(['minwres', params.minimumWidth]); }
         if (params.colorQuery) { _opts.push(['color', params.colorQuery]); } else if (params.onlyDarkImages) { _opts.push(['dark', 'true']); } else if (params.onlyLightImages) { _opts.push(['dark', 'false']); }
         if (params.extraOptions && params.extraOptions.length > 2) { _opts.push(params.extraOptions); }
     }
-    if (params.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? params.displayName : `ADSMicro-${params.displayName}`]); } else if (config.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? config.displayName : `ADSMicro-${config.displayName}`]); } else { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? 'Untitled' : 'ADSMicro-Untitled']); }
+    if (params.displayName) { _opts.push(['displayname', (config.webMode && (config.slave === undefined || config.slave === false)) ? params.displayName : `ADSMicro-${params.displayName}`]); } else if (config.displayName) { _opts.push(['displayname', (config.webMode && (config.slave === undefined || config.slave === false)) ? config.displayName : `ADSMicro-${config.displayName}`]); } else { _opts.push(['displayname', (config.webMode && (config.slave === undefined || config.slave === false)) ? 'Untitled' : 'ADSMicro-Untitled']); }
     if (config.slave !== undefined && config.webMode) { _opts.push(['displaySlave', `${config.slave}`]); }
     if (params.nohistory) { _opts.push(['nohistory', 'true']); } else { _opts.push(['nohistory', 'false']); }
     if (params.screen) { _opts.push(['screen', params.screen]); } else { _opts.push(['screen', '0']); }
     _opts.push(['nocds', 'true']);
+    console.log(_opts);
     return _opts;
 }
 async function getImage(opts, extra) {
@@ -230,8 +239,8 @@ async function getWebCapture(opts, filename, extra) {
             })
             let extraCss = '';
             let apperance = {};
-            if (extra.apperance) {
-                apperance = extra.apperance;
+            if (extra.appearance) {
+                apperance = extra.appearance;
             } else if (config.appearance) {
                 apperance = config.appearance;
             }
@@ -260,7 +269,7 @@ async function getWebCapture(opts, filename, extra) {
                         extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: none!important; } #overlayRight { display: block!important; } #overlayLeft { display: none!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
                         break;
                     default:
-                        extraCss += `#overlayBg { display: none!important; } #overlayRight { display: none!important; } #overlayLeft { display: block!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
+                        extraCss += `#overlayBg { display: none!important; } #overlayRight { display: none!important; } #overlayLeft { display: none!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
                         break;
                 }
             }
@@ -269,6 +278,12 @@ async function getWebCapture(opts, filename, extra) {
             }
             if (apperance.info !== undefined && apperance.info === false) {
                 extraCss += `#dataInfo { display: none!important; } #logoStart { margin-left: auto; flex-grow: unset!important; }`;
+            }
+            const _adj  =`saturate(${(apperance.saturate !== undefined) ? apperance.saturate : '2' }) brightness(${(apperance.brightness !== undefined) ? apperance.brightness : '1.2' }) contrast(${(apperance.contrast !== undefined) ? apperance.contrast : '0.6' })`
+            const _blur = (apperance.blur !== undefined && apperance.blur === false) ? '' : `filter: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='a' x='0' y='0' width='10' height='1'%3E%3CfeGaussianBlur stdDeviation='${(apperance.blur !== undefined) ? apperance.blur : '10' }' result='b'/%3E%3CfeMorphology operator='dilate' radius='4'/%3E %3CfeMerge%3E%3CfeMergeNode/%3E%3CfeMergeNode in='b'/%3E%3C/feMerge%3E%3C/filter%3E%3C/svg%3E#a) `
+            extraCss += `.blur-this { ${_blur}${_adj}!important; -webkit-filter: ${_blur}${_adj}!important;}`;
+            if (apperance.shadow !== undefined && apperance.shadow === false) {
+                extraCss += `.portait-overlay {box-shadow: none!important;}`;
             }
 
             pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], { crop: true, css: extraCss });
