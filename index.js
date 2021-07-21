@@ -14,6 +14,7 @@ const glob = require('glob');
 const rimraf = require('rimraf');
 const pageres = require('pageres');
 const moment = require('moment');
+const sharp = require('sharp');
 let syncedTimer = false;
 let syncedInterval = undefined;
 let syncedIndex = undefined;
@@ -45,7 +46,7 @@ const cliArgs = yargs(hideBin(process.argv))
 console.log(`Sequenzia uADS for NodeJS - "Its Simple"\n`);
 
 let configFileLocation = path.join(path.resolve(process.cwd(), './config.json'));
-const wallpaperLocation = path.join(path.resolve((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), './.ads-wallpaper'));
+const wallpaperLocation = (cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd();
 const cookieLocation = path.join(path.resolve((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), './.ads-cookie.json'));
 if (cliArgs.config) { configFileLocation = path.join(path.resolve(process.cwd(), `./${cliArgs.config}`)) }
 const config = require(configFileLocation);
@@ -103,54 +104,86 @@ function requestBuilder(params) {
     }
     if (params.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? params.displayName : `ADSMicro-${params.displayName}`]); } else if (config.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? config.displayName : `ADSMicro-${config.displayName}`]); } else { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? 'Untitled' : 'ADSMicro-Untitled']); }
     if (config.slave !== undefined && config.webMode) { _opts.push(['displaySlave', `${config.slave}`]); }
+    if (params.nohistory) { _opts.push(['nohistory', 'true']); }
+    if (params.screen) { _opts.push(['screen', params.screen]); } else { _opts.push(['screen', '0']); }
     _opts.push(['nocds', 'true']);
     return _opts;
 }
-async function getImage(opts) {
+async function getImage(opts, extra) {
     try {
         const refreshURL = `${baseURL}/ambient-refresh`;
         let queryString = '';
         if (opts) { await opts.forEach((q,i,a) => { queryString += `${q[0]}=${q[1]}${(i !== a - 1) ? '&' : ''}` }); }
+        if (extra && extra.count) { queryString += `num=${extra.count}` }
         const _url = `${refreshURL}?${queryString}`
         const response = await got(_url, { cookieJar, dnsLookupIpVersion: 'ipv4' });
-        if (response.body && response.body.includes('randomImage')) {
+        if (response.body && response.body.includes('randomImagev2')) {
             const json = JSON.parse(response.body);
-            console.log(`${json.randomImage[8]} - ${json.randomImage[7]} - ${json.randomImage[4].join('/')} - ${json.randomImage[3]}`);
-            try {
-                const response = await got(json.randomImage[1], {cookieJar, dnsLookupIpVersion: 'ipv4'});
-                if (response.body) {
-                    const _wallpaperPath = `${wallpaperLocation}-${json.randomImage[8]}`
-                    const files = await glob.sync(`${wallpaperLocation}*`)
-                    fs.writeFile(_wallpaperPath, response.rawBody, async err => {
-                        if (err) {
-                            console.log(`Failed to save image : ${err.message}`)
-                            if (cliArgs.disableTimer) {
-                                process.exit(0);
-                            } else if (config.refreshTimeMin) {
-                                setTimeout(async () => {
-                                    await getNextImage(config)
-                                }, refreshTimer);
-                            } else {
-                                process.exit(0);
-                            }
+            let indexCount = 0;
+            for (const image of json.randomImagev2) {
+                if (extra && extra.incimentalFileNames) { indexCount++ };
+                console.log(`${image.eid} - ${image.pinned} - ${image.serverName.toUpperCase()}:/${image.className}/${image.channelName} - ${image.date}`);
+                try {
+                    const response = await got(image.fullImage, {cookieJar, dnsLookupIpVersion: 'ipv4'});
+                    if (response.body) {
+                        let fileExt = 'jpg';
+                        const _wallpaperPath = path.join(path.resolve(wallpaperLocation), (extra && extra.path) ? extra.path : '', `./ads-wallpaper_${(indexCount > 0) ? 'index' + indexCount: image.eid}.${fileExt}`)
+                        const files = (!extra) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), './ads-wallpaper')}*`) : undefined;
+                        sharp(response.rawBody)
+                            .toFormat(fileExt)
+                            .toFile(_wallpaperPath, async err => {
+                                if (err) {
+                                    console.log(`Failed to save image : ${err.message}`)
+                                    if (!extra) {
+                                        if (cliArgs.disableTimer) {
+                                            process.exit(0);
+                                        } else if (config.refreshTimeMin) {
+                                            setTimeout(async () => {
+                                                await getNextImage(config)
+                                            }, refreshTimer);
+                                        } else {
+                                            process.exit(0);
+                                        }
+                                    }
+                                } else {
+                                    if (!extra) {
+                                        await wallpaper.set(_wallpaperPath);
+                                        files.forEach(f => {
+                                            rimraf.sync(f)
+                                        });
+                                        if (cliArgs.disableTimer) {
+                                            process.exit(0);
+                                        } else if (config.refreshTimeMin) {
+                                            setTimeout(async () => {
+                                                await getNextImage(config)
+                                            }, refreshTimer);
+                                        } else {
+                                            process.exit(0);
+                                        }
+                                    }
+                                }
+                            })
+                    }
+                } catch (e) {
+                    console.error(`Failed to download image from Sequenzia!`)
+                    console.error(e.response.body);
+                    if (!extra) {
+                        if (cliArgs.disableTimer) {
+                            process.exit(0);
+                        } else if (config.refreshTimeMin) {
+                            setTimeout(async () => {
+                                await getNextImage(config)
+                            }, refreshTimer);
                         } else {
-                            await wallpaper.set(_wallpaperPath);
-                            files.forEach(f => { rimraf.sync(f) });
-                            if (cliArgs.disableTimer) {
-                                process.exit(0);
-                            } else if (config.refreshTimeMin) {
-                                setTimeout(async () => {
-                                    await getNextImage(config)
-                                }, refreshTimer);
-                            } else {
-                                process.exit(0);
-                            }
+                            process.exit(0);
                         }
-                    })
+                    }
                 }
-            } catch (e) {
-                console.error(`Failed to download image from Sequenzia!`)
-                console.error(e.response.body);
+            }
+
+        } else {
+            console.error('Did not a valid response for the server, please report this!');
+            if (!extra) {
                 if (cliArgs.disableTimer) {
                     process.exit(0);
                 } else if (config.refreshTimeMin) {
@@ -161,8 +194,11 @@ async function getImage(opts) {
                     process.exit(0);
                 }
             }
-        } else {
-            console.error('Did not a valid response for the server, please report this!');
+        }
+    } catch (error) {
+        console.error(`Failed to get response from Sequenzia!`)
+        console.error(error);
+        if (!extra) {
             if (cliArgs.disableTimer) {
                 process.exit(0);
             } else if (config.refreshTimeMin) {
@@ -173,29 +209,17 @@ async function getImage(opts) {
                 process.exit(0);
             }
         }
-    } catch (error) {
-        console.error(`Failed to get response from Sequenzia!`)
-        console.error(error.response.body);
-        if (cliArgs.disableTimer) {
-            process.exit(0);
-        } else if (config.refreshTimeMin) {
-            setTimeout(async () => {
-                await getNextImage(config)
-            }, refreshTimer);
-        } else {
-            process.exit(0);
-        }
     }
 }
-async function getWebCapture(opts) {
+async function getWebCapture(opts, filename, extra) {
     try {
         const refreshURL = `${baseURL}/ads-micro`;
         let queryString = '';
         if (opts) { await opts.forEach((q,i,a) => { queryString += `${q[0]}=${q[1]}${(i !== a - 1) ? '&' : ''}` }); }
         const _url = `${refreshURL}?${queryString}`
         try {
-            const files = await glob.sync(`${wallpaperLocation}*`)
-            const _filename = `./.ads-wallpaper_${new Date().getTime()}`
+            const files = (!extra) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), './ads-wallpaper')}*`) : undefined;
+            const _filename = (!filename) ? `ads-wallpaper_${new Date().getTime()}` : filename;
 
             const cookies = cookieJar.getCookiesSync(baseURL).map(c => c.toString());
             const pageRequest = new pageres({
@@ -205,110 +229,140 @@ async function getWebCapture(opts) {
                 filename: _filename
             })
             let extraCss = '';
-            if (config.appearance) {
-                if (config.appearance.padding) {
-                    switch (config.appearance.padding.toLowerCase()) {
-                        case "bottom":
-                            extraCss += `#BottomSestion { padding-bottom: ${(config.appearance.padding_value) ? config.appearance.padding_value : "1.25em"}; } `;
-                            break;
-                        case "left":
-                            extraCss += `#BottomSestion { padding-left: ${(config.appearance.padding_value) ? config.appearance.padding_value : "1.25em"}; } `;
-                            break;
-                        case "right":
-                            extraCss += `#BottomSestion { padding-right: ${(config.appearance.padding_value) ? config.appearance.padding_value : "1.25em"}; } `;
-                            break;
-                    }
-                }
-                if (config.appearance.overlay) {
-                    switch (config.appearance.overlay.toLowerCase()) {
-                        case "bottom":
-                            extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: block!important; } #overlayRight { display: none!important; } #overlayLeft { display: none!important; } `;
-                            break;
-                        case "left":
-                            extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: none!important; } #overlayRight { display: none!important; } #overlayLeft { display: block!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
-                            break;
-                        case "right":
-                            extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: none!important; } #overlayRight { display: block!important; } #overlayLeft { display: none!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
-                            break;
-                        default:
-                            extraCss += `#overlayBg { display: none!important; } #overlayRight { display: none!important; } #overlayLeft { display: block!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
-                            break;
-                    }
-                }
-                if (config.appearance.color) {
-                    extraCss += `#content-wrapper { color: ${config.appearance.color}; }`;
-                }
-                if (config.appearance.info !== undefined && config.appearance.info === false) {
-                    extraCss += `#dataInfo { display: none!important; } #logoStart { margin-left: auto; flex-grow: unset!important; }`;
+            let apperance = {};
+            if (extra.apperance) {
+                apperance = extra.apperance;
+            } else if (config.appearance) {
+                apperance = config.appearance;
+            }
+            if (apperance.padding) {
+                switch (apperance.padding.toLowerCase()) {
+                    case "bottom":
+                        extraCss += `#BottomSestion { padding-bottom: ${(apperance.padding_value) ? apperance.padding_value : "1.25em"}; } `;
+                        break;
+                    case "left":
+                        extraCss += `#BottomSestion { padding-left: ${(apperance.padding_value) ? apperance.padding_value : "1.25em"}; } `;
+                        break;
+                    case "right":
+                        extraCss += `#BottomSestion { padding-right: ${(apperance.padding_value) ? apperance.padding_value : "1.25em"}; } `;
+                        break;
                 }
             }
+            if (apperance.overlay) {
+                switch (apperance.overlay.toLowerCase()) {
+                    case "bottom":
+                        extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: block!important; } #overlayRight { display: none!important; } #overlayLeft { display: none!important; } `;
+                        break;
+                    case "left":
+                        extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: none!important; } #overlayRight { display: none!important; } #overlayLeft { display: block!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
+                        break;
+                    case "right":
+                        extraCss += `#dataInfo { opacity: 0.35; } #overlayBg { display: none!important; } #overlayRight { display: block!important; } #overlayLeft { display: none!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
+                        break;
+                    default:
+                        extraCss += `#overlayBg { display: none!important; } #overlayRight { display: none!important; } #overlayLeft { display: block!important; } .shadow-txt { text-shadow: 0 0 18px #00000082; } `;
+                        break;
+                }
+            }
+            if (apperance.color) {
+                extraCss += `#content-wrapper { color: ${apperance.color}; }`;
+            }
+            if (apperance.info !== undefined && apperance.info === false) {
+                extraCss += `#dataInfo { display: none!important; } #logoStart { margin-left: auto; flex-grow: unset!important; }`;
+            }
+
             pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], { crop: true, css: extraCss });
-            pageRequest.dest((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd());
-            pageRequest.run()
+            pageRequest.dest(path.join(path.resolve(wallpaperLocation), (extra.path) ? extra.path : ''));
+            await pageRequest.run()
                 .then(async sc => {
-                    await wallpaper.set(path.join((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), sc[0].filename));
-                    files.forEach(f => { rimraf.sync(f) });
-                    console.log("Wallpaper updated!");
-                    if (cliArgs.disableTimer) {
-                        process.exit(0);
-                    } else if (config.webMode && config.slave && (!syncedTimer || syncedIndex !== _selectedIndex) && !config.schedule) {
-                        const response = await got(`${baseURL}/ambient-history?command=timeSync&screen=0&json=true&${queryString}`, { cookieJar, dnsLookupIpVersion: 'ipv4' });
-                        if (response.body && response.body.includes('delta')) {
-                            const json = JSON.parse(response.body);
-                            if (json.delta && json.interval && (Math.abs(json.delta) < parseInt(json.interval.toString()) * 60000)) {
-                                let nextRefreshTime = (json.interval * 60000) + json.delta;
-                                console.log(`Got Sync Pulse : ${(nextRefreshTime / 60000).toFixed(2)} Min, Remote Interval is ${json.interval} Min`);
-                                if (syncedIndex !== _selectedIndex) {
-                                    syncedIndex = _selectedIndex;
+                    if (!extra) {
+                        await wallpaper.set(path.join(path.resolve(wallpaperLocation), sc[0].filename));
+                        files.forEach(f => {
+                            rimraf.sync(f)
+                        });
+                        console.log("Wallpaper updated!");
+                        if (cliArgs.disableTimer) {
+                            process.exit(0);
+                        } else if (config.webMode && config.slave && (!syncedTimer || syncedIndex !== _selectedIndex) && !config.schedule) {
+                            const response = await got(`${baseURL}/ambient-history?command=timeSync&screen=0&json=true&${queryString}`, {
+                                cookieJar,
+                                dnsLookupIpVersion: 'ipv4'
+                            });
+                            if (response.body && response.body.includes('delta')) {
+                                const json = JSON.parse(response.body);
+                                if (json.delta && json.interval && (Math.abs(json.delta) < parseInt(json.interval.toString()) * 60000)) {
+                                    let nextRefreshTime = (json.interval * 60000) + json.delta;
+                                    console.log(`Got Sync Pulse : ${(nextRefreshTime / 60000).toFixed(2)} Min, Remote Interval is ${json.interval} Min`);
+                                    if (syncedIndex !== _selectedIndex) {
+                                        syncedIndex = _selectedIndex;
+                                    }
+                                    syncedTimer = true;
+                                    syncedInterval = json.interval * 60000;
+                                    setTimeout(async () => {
+                                        await getNextImage(config)
+                                    }, nextRefreshTime + 2000);
+                                } else {
+                                    console.log("Failed to get time sync or master is not responding");
+                                    syncedTimer = false;
+                                    syncedInterval = undefined;
+                                    setTimeout(async () => {
+                                        await getNextImage(config)
+                                    }, refreshTimer);
                                 }
-                                syncedTimer = true;
-                                syncedInterval = json.interval * 60000;
-                                setTimeout(async () => {
-                                    await getNextImage(config)
-                                }, nextRefreshTime + 2000);
                             } else {
-                                console.log("Failed to get time sync or master is not responding");
+                                console.log("Failed to get time sync response");
                                 syncedTimer = false;
                                 syncedInterval = undefined;
                                 setTimeout(async () => {
                                     await getNextImage(config)
                                 }, refreshTimer);
                             }
-                        } else {
-                            console.log("Failed to get time sync response");
-                            syncedTimer = false;
-                            syncedInterval = undefined;
+                        } else if (config.webMode && config.slave && !config.schedule && syncedInterval) {
+                            setTimeout(async () => {
+                                await getNextImage(config)
+                            }, syncedInterval);
+                        } else if (config.refreshTimeMin) {
                             setTimeout(async () => {
                                 await getNextImage(config)
                             }, refreshTimer);
+                        } else {
+                            process.exit(0);
                         }
-                    } else if (config.webMode && config.slave && !config.schedule && syncedInterval) {
-                        setTimeout(async () => {
-                            await getNextImage(config)
-                        }, syncedInterval);
-                    } else if (config.refreshTimeMin) {
-                        setTimeout(async () => {
-                            await getNextImage(config)
-                        }, refreshTimer);
-                    } else {
-                        process.exit(0);
                     }
                 })
                 .catch(e => {
                     console.log(`Failed to capture image from Sequenzia! - ${e.message}`)
-                    if (cliArgs.disableTimer) {
-                        process.exit(0);
-                    } else if (config.refreshTimeMin) {
-                        setTimeout(async () => {
-                            await getNextImage(config)
-                        }, refreshTimer);
-                    } else {
-                        process.exit(0);
+                    if (!extra) {
+                        if (cliArgs.disableTimer) {
+                            process.exit(0);
+                        } else if (config.refreshTimeMin) {
+                            setTimeout(async () => {
+                                await getNextImage(config)
+                            }, refreshTimer);
+                        } else {
+                            process.exit(0);
+                        }
                     }
                 })
         } catch (e) {
             console.error(`Failed to capture image from Sequenzia!`)
             console.error(e);
+            if (!extra) {
+                if (cliArgs.disableTimer) {
+                    process.exit(0);
+                } else if (config.refreshTimeMin) {
+                    setTimeout(async () => {
+                        await getNextImage(config)
+                    }, refreshTimer);
+                } else {
+                    process.exit(0);
+                }
+            }
+        }
+    } catch (error) {
+        console.error(`Failed to get response from Sequenzia!`)
+        console.error(error);
+        if (!extra) {
             if (cliArgs.disableTimer) {
                 process.exit(0);
             } else if (config.refreshTimeMin) {
@@ -318,18 +372,6 @@ async function getWebCapture(opts) {
             } else {
                 process.exit(0);
             }
-        }
-    } catch (error) {
-        console.error(`Failed to get response from Sequenzia!`)
-        console.error(error);
-        if (cliArgs.disableTimer) {
-            process.exit(0);
-        } else if (config.refreshTimeMin) {
-            setTimeout(async () => {
-                await getNextImage(config)
-            }, refreshTimer);
-        } else {
-            process.exit(0);
         }
     }
 }
@@ -382,7 +424,43 @@ async function getNextImage (_config) {
 }
 
 let refreshTimer = 15 * 60 * 1000;
-if (config.schedule && !cliArgs.disableTimer) {
+if (config.folders) {
+    console.log('Updating Folders...')
+    loginValidate(config.staticLoginKey, (async ok => {
+        if (ok) {
+            for (const f of config.folders) {
+                const files = (!f.keepItems && !f.incimentalFileNames) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), f.path, './ads-wallpaper')}*`) : undefined;
+                const num = (f.count) ? parseInt(f.count.toString()) : 5;
+                if (config.webMode) {
+                    let indexCount = 0;
+                    for (let i = 0; i < num; i++) {
+                        if (f.incimentalFileNames) {
+                            indexCount++
+                        }
+                        await getWebCapture(requestBuilder(f), (indexCount > 0) ? `ads-wallpaper_index${indexCount}` : undefined, f);
+                    }
+                } else {
+                    let opts = {};
+                    opts = f;
+                    opts.count = num;
+                    await getImage(requestBuilder(f), opts);
+                }
+                if (!f.keepItems && !f.incimentalFileNames) {
+                    files.forEach(f => {
+                        rimraf.sync(f)
+                    });
+                }
+            }
+            console.log('Download Complete!')
+            setTimeout(() => {
+                process.exit(0);
+            }, 30000)
+        } else {
+            console.log('Sorry, Failed to Login');
+            process.exit(1);
+        }
+    }));
+} else if (config.schedule && !cliArgs.disableTimer) {
     if ((cliArgs.runJob || cliArgs.runJob === 0) && config.schedule.length !== 0 && cliArgs.runJob <= config.schedule.length - 1) {
         console.error(`On-Demand Running Schedule #${cliArgs.runJob}...`)
         getNextImage(config.schedule[cliArgs.runJob])
@@ -421,4 +499,3 @@ if (config.schedule && !cliArgs.disableTimer) {
 } else {
     console.error(`No Schedule or Refresh Timer Found!`)
 }
-

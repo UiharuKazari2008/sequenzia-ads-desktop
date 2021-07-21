@@ -10,17 +10,17 @@ Once Installed you can run from PowerShell or Terminal<br>
 `ads-micro -c config.json`<br>
 Example Output:<br>
 ```shell
-ads-micro -c ../../day.json
+ads-micro
 Logging in...
 Login successful!
 Registered Enabled, Every 5 Minutes
 726784923150712832 - false - Cosplay/General/seq - June 28, 2020
 ```
 
-## Configuration - config.json
-### Web Mode
+# Configuration - config.json
+## New Web Mode (Generator)
 This mode will request a micro version of the standard ADS Lite system, this will generate an image to allow for portrait images to be displayed correctly
-#### Independent Mode
+### Independent Mode
 ```json
 {
   "sequenziaHost": "seq.moe",
@@ -42,7 +42,7 @@ This mode will request a micro version of the standard ADS Lite system, this wil
   "onlyLightImages": false
 }
 ```
-#### Master/Slave Mode
+### Master/Slave Mode
 In a master / slave relationship you can set a display as the master with `slave: false` and this instance will be we the display that generates the actual request and will write to the history. <br>
 All Slave instances will retrieve the image that has been set on the master, effectively synchronising all displays.<br>
 <b>NOTE: Just like ADS Lite if the master is offline or has failed, the slaves will not get new images . At this time there is no reelection support. Using this mode only makes sense if you have a ADS Lite display always running or is active using the time this instance is running. <br></b>
@@ -59,7 +59,7 @@ For example: you have ADS Lite display connected to your monitor and its used as
 }
 ```
 You can use this with cron tasks, `webMode: true` and `slave: ` must be outside the schedule block!****
-#### Appearance Settings
+### Appearance Settings
 ```json
 {
 "appearance": {
@@ -78,7 +78,7 @@ overlay: [left, right, bottom, none] // Added classic overlay gradiant from ADS 
 color: [CSS Color Name, hex, rgb()] // Change the color of the text, will overide auto coloring based on background
 info: [true, false] // Removed the image location data and move the logo to the right, you can also remove this property to do the same as true  
 ```
-### Standard Mode
+## Legacy Mode (Downloader)
 This will use the standard request and download the image for your wallpaper
 ```json
 {
@@ -100,8 +100,8 @@ This will use the standard request and download the image for your wallpaper
   "onlyLightImages": false
 }
 ```
-###Extra Options
-#### Resolutions
+## Extra Options
+### Resolutions
 ```json
 {
   "minimumHeight": "1080"
@@ -114,33 +114,33 @@ or
 }
 ```
 You can set a minimum height and or width as well if you want strict minimum resolutions instead of the lose "minimumResolution"<br>
-#### Ratio (Overrides wideScreenOnly)
+### Ratio (Overrides wideScreenOnly)
 ```json
 {
   "ratioQuery": "0.01-0.9"
 }
 ```
-#### Album
+### Album
 ```json
 {
   "albumId": "10"
 }
 ```
 You can also set a album ID to only get images from an album<br>
-#### Search Query
+### Search Query
 ```json
 {
   "searchQuery": "text:Twitter Image"
 }
 ```
-#### Color Query (Overrides onlyDarkImages and onlyLightImages)
+### Color Query (Overrides onlyDarkImages and onlyLightImages)
 ```json
 {
   "colorQuery": "0-195:0-199:0-200"
 }
 ```
 You can use the new color range or color selection, use the "color=" string directly from the URL in Sequenzia Web
-#### Manual Options
+### Manual Options
 ```json
 {
   "extraOptions": "options=value&option2=value"
@@ -148,7 +148,42 @@ You can use the new color range or color selection, use the "color=" string dire
 ```
 Allows for additional options that have not been yet implemented
 
-## Cron Schedules
+# Unmanaged Folder Mode
+Useing folder options will allow you to download/generate wallpapers that are saved to a folder without out any further action.<br>
+This can be used with your operating systems build in slideshow options or other applications
+
+You can use web mode and appearance options like normal. Appearance options can be placed in a folder to be applied to all images in that folder.
+```json
+{
+  "sequenziaHost": "seq.moe",
+  "staticLoginKey": "YOURLOGINEY",
+  "displayName": "My PC",
+  "webMode": true,
+  
+  "folders": [
+    {
+      "path": "Wallpapers",
+      "screen": "0",
+      "location": "seq:art:*",
+      "incimentalFileNames": true,
+      "favoritesOnly": true,
+      "enableNSFW": false,
+      "minimumResolution": "1200"
+    }
+  ]
+}
+```
+
+## Options
+```
+path: String // Folder Name in relation to the current directory or wallpaper path option
+count: Interget // Number of Images to download / create
+nohistory: [true, false] // Disables Adding Images to the Display History (Only applys to Web Mode, Legacy will not add by default)
+screen: Interger // Screen/Monitor Number, 0 = Wallpaper/Main or 1 = Lockscreen/Secoundary
+incimentalFileNames: [true, false] // Ensured that all files names are the same and will overwrite old files (For OSs that are not smart about file management, Windows)  
+```
+
+# Cron Schedules
 Please use [Cron Guru](https://crontab.guru/) for formatting, Incorrect cron job definitions can and will be disastrous!<br>
 ```text
 From 5AM to 5PM
@@ -193,7 +228,7 @@ From 6PM to 6AM
   ]
 }
 ```
-## Timed Swap
+# Timed Swap
 This uses the ADS Lite displaySwap system, more useful if your use webMode and master/slave but is compatible will all modes.<br>
 <b>NOTE: You must only have 2 items, Timed Swap only supports 2 display names</b>
 ```text
