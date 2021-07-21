@@ -152,17 +152,17 @@ Allows for additional options that have not been yet implemented
 Useing folder options will allow you to download/generate wallpapers that are saved to a folder without out any further action.<br>
 This can be used with your operating systems build in slideshow options or other applications
 
-You can use web mode and appearance options like normal. Appearance options can be placed in a folder to be applied to all images in that folder.
+You can use web mode and appearance options like normal, you must specify webMode inside the folder. Appearance options can be placed in a folder to be applied to all images in that folder.
 ```json
 {
   "sequenziaHost": "seq.moe",
   "staticLoginKey": "YOURLOGINEY",
   "displayName": "My PC",
-  "webMode": true,
   
   "folders": [
     {
       "path": "Wallpapers",
+      "webMode": true,
       "screen": "0",
       "location": "seq:art:*",
       "incimentalFileNames": true,
@@ -178,7 +178,7 @@ You can use web mode and appearance options like normal. Appearance options can 
 ```
 path: String // Folder Name in relation to the current directory or wallpaper path option
 count: Interget // Number of Images to download / create
-nohistory: [true, false] // Disables Adding Images to the Display History (Only applys to Web Mode, Legacy will not add by default)
+nohistory: [true, false] // Disables Adding Images to the Display History
 screen: Interger // Screen/Monitor Number, 0 = Wallpaper/Main or 1 = Lockscreen/Secoundary
 incimentalFileNames: [true, false] // Ensured that all files names are the same and will overwrite old files (For OSs that are not smart about file management, Windows)  
 ```

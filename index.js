@@ -104,7 +104,7 @@ function requestBuilder(params) {
     }
     if (params.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? params.displayName : `ADSMicro-${params.displayName}`]); } else if (config.displayName) { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? config.displayName : `ADSMicro-${config.displayName}`]); } else { _opts.push(['displayname', (config.webMode && config.slave !== undefined) ? 'Untitled' : 'ADSMicro-Untitled']); }
     if (config.slave !== undefined && config.webMode) { _opts.push(['displaySlave', `${config.slave}`]); }
-    if (params.nohistory) { _opts.push(['nohistory', 'true']); }
+    if (params.nohistory) { _opts.push(['nohistory', 'true']); } else { _opts.push(['nohistory', 'false']); }
     if (params.screen) { _opts.push(['screen', params.screen]); } else { _opts.push(['screen', '0']); }
     _opts.push(['nocds', 'true']);
     return _opts;
@@ -120,16 +120,16 @@ async function getImage(opts, extra) {
         if (response.body && response.body.includes('randomImagev2')) {
             const json = JSON.parse(response.body);
             let indexCount = 0;
-            for (const image of json.randomImagev2) {
+            for (const item in json.randomImagev2) {
                 if (extra && extra.incimentalFileNames) { indexCount++ };
-                console.log(`${image.eid} - ${image.pinned} - ${image.serverName.toUpperCase()}:/${image.className}/${image.channelName} - ${image.date}`);
+                console.log(`${json.randomImagev2[item].eid} - ${json.randomImagev2[item].pinned} - ${json.randomImagev2[item].serverName.toUpperCase()}:/${json.randomImagev2[item].className}/${json.randomImagev2[item].channelName} - ${json.randomImagev2[item].date}`);
                 try {
-                    const response = await got(image.fullImage, {cookieJar, dnsLookupIpVersion: 'ipv4'});
+                    const response = await got(json.randomImagev2[item].fullImage, {cookieJar, dnsLookupIpVersion: 'ipv4'});
                     if (response.body) {
                         let fileExt = 'jpg';
-                        const _wallpaperPath = path.join(path.resolve(wallpaperLocation), (extra && extra.path) ? extra.path : '', `./ads-wallpaper_${(indexCount > 0) ? 'index' + indexCount: image.eid}.${fileExt}`)
+                        const _wallpaperPath = path.join(path.resolve(wallpaperLocation), (extra && extra.path) ? extra.path : '', `./ads-wallpaper_${(indexCount > 0) ? 'index' + indexCount: json.randomImagev2[item].eid}.${fileExt}`)
                         const files = (!extra) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), './ads-wallpaper')}*`) : undefined;
-                        sharp(response.rawBody)
+                        await sharp(response.rawBody)
                             .toFormat(fileExt)
                             .toFile(_wallpaperPath, async err => {
                                 if (err) {
@@ -431,7 +431,10 @@ if (config.folders) {
             for (const f of config.folders) {
                 const files = (!f.keepItems && !f.incimentalFileNames) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), f.path, './ads-wallpaper')}*`) : undefined;
                 const num = (f.count) ? parseInt(f.count.toString()) : 5;
-                if (config.webMode) {
+                if (!fs.existsSync(path.join(path.resolve(wallpaperLocation), f.path))){
+                    fs.mkdirSync(path.join(path.resolve(wallpaperLocation), f.path));
+                }
+                if (f.webMode) {
                     let indexCount = 0;
                     for (let i = 0; i < num; i++) {
                         if (f.incimentalFileNames) {
@@ -454,7 +457,7 @@ if (config.folders) {
             console.log('Download Complete!')
             setTimeout(() => {
                 process.exit(0);
-            }, 30000)
+            }, 15000)
         } else {
             console.log('Sorry, Failed to Login');
             process.exit(1);
