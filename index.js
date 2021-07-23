@@ -238,9 +238,9 @@ async function getWebCapture(opts, filename, extra) {
             })
             let extraCss = '';
             let apperance = {};
-            if (extra.appearance) {
+            if (extra && extra.appearance !== undefined) {
                 apperance = extra.appearance;
-            } else if (config.appearance) {
+            } else if (config && config.appearance !== undefined) {
                 apperance = config.appearance;
             }
             if (apperance.padding) {
@@ -286,7 +286,7 @@ async function getWebCapture(opts, filename, extra) {
             }
 
             pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], { crop: true, css: extraCss });
-            pageRequest.dest(path.join(path.resolve(wallpaperLocation), (extra.path) ? extra.path : ''));
+            pageRequest.dest(path.join(path.resolve(wallpaperLocation), (extra && extra.path) ? extra.path : ''));
             await pageRequest.run()
                 .then(async sc => {
                     if (!extra) {
