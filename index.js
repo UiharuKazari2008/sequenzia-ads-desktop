@@ -110,8 +110,8 @@ function requestBuilder(params) {
         if (params.colorQuery) { _opts.push(['color', params.colorQuery]); } else if (params.onlyDarkImages) { _opts.push(['dark', 'true']); } else if (params.onlyLightImages) { _opts.push(['dark', 'false']); }
         if (params.extraOptions && params.extraOptions.length > 2) { _opts.push(params.extraOptions); }
     }
-    if (params.displayName) { _opts.push(['displayname', (config.webMode && (config.slave === undefined || config.slave === false)) ? params.displayName : `ADSMicro-${params.displayName}`]); } else if (config.displayName) { _opts.push(['displayname', (config.webMode && (config.slave === undefined || config.slave === false)) ? config.displayName : `ADSMicro-${config.displayName}`]); } else { _opts.push(['displayname', (config.webMode && (config.slave === undefined || config.slave === false)) ? 'Untitled' : 'ADSMicro-Untitled']); }
-    if (config.slave !== undefined && config.webMode) { _opts.push(['displaySlave', `${config.slave}`]); }
+    _opts.push(['displayname', !(config.webMode && config.slave !== undefined) ? '' : 'ADSMicro-' + (params.displayName) ? params.displayName : (config.displayName) ? config.displayName : 'Untitled' ]);
+    if (config.slave !== undefined) { _opts.push(['displaySlave', `${(config.slave) ? 'true' : 'false'}`]); }
     if (params.nohistory) { _opts.push(['nohistory', 'true']); } else { _opts.push(['nohistory', 'false']); }
     if (params.screen) { _opts.push(['screen', params.screen]); } else { _opts.push(['screen', '0']); }
     _opts.push(['nocds', 'true']);
@@ -121,7 +121,7 @@ async function getImage(opts, extra) {
     try {
         const refreshURL = `${baseURL}/ambient-refresh`;
         let queryString = '';
-        if (opts) { await opts.forEach((q,i,a) => { queryString += `${q[0]}=${q[1]}${(i !== a - 1) ? '&' : ''}` }); }
+        if (opts) { await opts.forEach((q,i,a) => { queryString += `${encodeURIComponent(q[0])}=${encodeURIComponent(q[1])}${(i !== a - 1) ? '&' : ''}` }); }
         if (extra && extra.count) { queryString += `num=${extra.count}` }
         const _url = `${refreshURL}?${queryString}`
         const response = await got(_url, { cookieJar, dnsLookupIpVersion: 'ipv4' });
@@ -223,7 +223,8 @@ async function getWebCapture(opts, filename, extra) {
     try {
         const refreshURL = `${baseURL}/ads-micro`;
         let queryString = '';
-        if (opts) { await opts.forEach((q,i,a) => { queryString += `${q[0]}=${q[1]}${(i !== a - 1) ? '&' : ''}` }); }
+        if (opts) { await opts.forEach((q,i,a) => { queryString += `${encodeURIComponent(q[0])}=${encodeURIComponent(q[1])}${(i !== a - 1) ? '&' : ''}` }); }
+        if (extra && extra.count) { queryString += `${(!queryString.endsWith('&') ? '&' : '')}reqCount=${encodeURIComponent(extra.count)}`; }
         const _url = `${refreshURL}?${queryString}`
         try {
             const files = (!extra) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), './ads-wallpaper')}*`) : undefined;
@@ -298,7 +299,7 @@ async function getWebCapture(opts, filename, extra) {
                         if (cliArgs.disableTimer) {
                             process.exit(0);
                         } else if (config.webMode && config.slave && (!syncedTimer || syncedIndex !== _selectedIndex) && !config.schedule) {
-                            const response = await got(`${baseURL}/ambient-history?command=timeSync&screen=0&json=true&${queryString}`, {
+                            const response = await got(`${baseURL}/ambient-history?command=timeSync&json=true&${queryString}`, {
                                 cookieJar,
                                 dnsLookupIpVersion: 'ipv4'
                             });
