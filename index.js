@@ -110,7 +110,7 @@ function requestBuilder(params) {
         if (params.colorQuery) { _opts.push(['color', params.colorQuery]); } else if (params.onlyDarkImages) { _opts.push(['dark', 'true']); } else if (params.onlyLightImages) { _opts.push(['dark', 'false']); }
         if (params.extraOptions && params.extraOptions.length > 2) { _opts.push(params.extraOptions); }
     }
-    _opts.push(['displayname', !(config.webMode && config.slave !== undefined) ? '' : 'ADSMicro-' + (params.displayName) ? params.displayName : (config.displayName) ? config.displayName : 'Untitled' ]);
+    _opts.push(['displayname', `${!(config.webMode && config.slave !== undefined) ? '' : 'ADSMicro-'}${(params.displayName) ? params.displayName : (config.displayName) ? config.displayName : 'Untitled'}` ]);
     if (config.slave !== undefined) { _opts.push(['displaySlave', `${(config.slave) ? 'true' : 'false'}`]); }
     if (params.nohistory) { _opts.push(['nohistory', 'true']); } else { _opts.push(['nohistory', 'false']); }
     if (params.screen) { _opts.push(['screen', params.screen]); } else { _opts.push(['screen', '0']); }
