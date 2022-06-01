@@ -60,12 +60,12 @@ async function loginValidate (key, cb) {
                 cookieJar.setCookieSync(cookie.toString(), baseURL);
             })
         }
-        const test = await got(`${baseURL}/ping`, {cookieJar, dnsLookupIpVersion: 'ipv4'});
+        const test = await got(`${baseURL}/ping`, {cookieJar,  headers: { 'User-Agent': 'SequenziaADS/1.0' }, dnsLookupIpVersion: 'ipv4'});
         if (test.body && test.body.includes('Pong')) {
             cb(true);
         } else if (key) {
             console.log('Logging in...');
-            const login = await got(`${baseURL}/ping?key=${key}`, {cookieJar, dnsLookupIpVersion: 'ipv4'});
+            const login = await got(`${baseURL}/ping?key=${key}`, {cookieJar,  headers: { 'User-Agent': 'SequenziaADS/1.0' }, dnsLookupIpVersion: 'ipv4'});
             if (login.body && login.body.includes('Pong')) {
                 await login.headers["set-cookie"].forEach(c => {
                     setCookie(c, baseURL);
@@ -124,7 +124,7 @@ async function getImage(opts, extra) {
         if (opts) { await opts.forEach((q,i,a) => { queryString += `${encodeURIComponent(q[0])}=${encodeURIComponent(q[1])}${(i !== a - 1) ? '&' : ''}` }); }
         if (extra && extra.count) { queryString += `num=${extra.count}` }
         const _url = `${refreshURL}?${queryString}`
-        const response = await got(_url, { cookieJar, dnsLookupIpVersion: 'ipv4' });
+        const response = await got(_url, { cookieJar,  headers: { 'User-Agent': 'SequenziaADS/1.0' }, dnsLookupIpVersion: 'ipv4' });
         if (response.body && response.body.includes('randomImagev2')) {
             const json = JSON.parse(response.body);
             let indexCount = 0;
