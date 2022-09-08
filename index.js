@@ -53,6 +53,7 @@ const config = require(configFileLocation);
 const baseURL = `https://${config.sequenziaHost}`;
 
 async function loginValidate (key, cb) {
+
     try {
         if (fs.existsSync(cookieLocation)) {
             const cookieJarStored = JSON.parse(fs.readFileSync(cookieLocation).toString("utf8"));
@@ -60,13 +61,27 @@ async function loginValidate (key, cb) {
                 cookieJar.setCookieSync(cookie.toString(), baseURL);
             })
         }
-        const test = await got(`${baseURL}/ping`, {cookieJar,  headers: { 'User-Agent': 'SequenziaADS/1.0' }, dnsLookupIpVersion: 'ipv4'});
-        if (test.body && test.body.includes('Pong')) {
+        const test = await (async () => {
+            try {
+                return await got(`${baseURL}/ping`, {cookieJar,  headers: { 'User-Agent': 'SequenziaADS/1.0' }, dnsLookupIpVersion: 'ipv4'});
+            } catch (e) {
+                console.log(e);
+                return false;
+            }
+        })()
+        if (test && test.body && test.body.includes('Pong')) {
             cb(true);
         } else if (key) {
             console.log('Logging in...');
-            const login = await got(`${baseURL}/ping?key=${key}`, {cookieJar,  headers: { 'User-Agent': 'SequenziaADS/1.0' }, dnsLookupIpVersion: 'ipv4'});
-            if (login.body && login.body.includes('Pong')) {
+            const login = await (async () => {
+                try {
+                    return await got(`${baseURL}/ping?key=${key}`, {cookieJar,  headers: { 'User-Agent': 'SequenziaADS/1.0' }, dnsLookupIpVersion: 'ipv4'});
+                } catch (e) {
+                    console.log(e);
+                    return false;
+                }
+            })()
+            if (login && login.body && login.body.includes('Pong')) {
                 await login.headers["set-cookie"].forEach(c => {
                     setCookie(c, baseURL);
                 });
@@ -238,6 +253,7 @@ async function getWebCapture(opts, filename, extra) {
         if (opts) { await opts.forEach((q,i,a) => { queryString += `${encodeURIComponent(q[0])}=${encodeURIComponent(q[1])}${(i !== a - 1) ? '&' : ''}` }); }
         if (extra && extra.count) { queryString += `${(!queryString.endsWith('&') ? '&' : '')}reqCount=${encodeURIComponent(extra.count)}`; }
         const _url = `${refreshURL}?${queryString}`
+        console.log(`Requesting URL "${_url}"`);
         try {
             const files = (!extra) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), './ads-wallpaper')}*`) : undefined;
             const _filename = (!filename) ? `ads-wallpaper_${new Date().getTime()}` : filename;
