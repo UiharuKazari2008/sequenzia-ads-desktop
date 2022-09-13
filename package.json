@@ -1,10 +1,10 @@
 {
   "name": "sequenzia-ads-micro",
-  "version": "1.2.13",
+  "version": "1.2.14",
   "description": "Micro version of the Sequenzia Ambient Display System, will simply set your wallpaper to a random image from seq.moe (with login)",
   "dependencies": {
     "glob": "^7.1.7",
-    "got": "",
+    "got": "11.8.2",
     "moment": "^2.29.1",
     "node-cron": "^3.0.0",
     "pageres": "^6.2.3",
