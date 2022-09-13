@@ -50,7 +50,7 @@ const wallpaperLocation = (cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage 
 const cookieLocation = path.join(path.resolve((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), './.ads-cookie.json'));
 if (cliArgs.config) { configFileLocation = path.join(path.resolve(process.cwd(), `./${cliArgs.config}`)) }
 const config = require(configFileLocation);
-const baseURL = `https://${config.sequenziaHost}`;
+const baseURL = `http${(config.http) ? '' : 's'}://${config.sequenziaHost}`;
 
 async function loginValidate (key, cb) {
 
@@ -250,9 +250,20 @@ async function getWebCapture(opts, filename, extra) {
     try {
         const refreshURL = `${baseURL}/ads-micro`;
         let queryString = '';
+        let hashString = '';
         if (opts) { await opts.forEach((q,i,a) => { queryString += `${encodeURIComponent(q[0])}=${encodeURIComponent(q[1])}${(i !== a - 1) ? '&' : ''}` }); }
         if (extra && extra.count) { queryString += `${(!queryString.endsWith('&') ? '&' : '')}reqCount=${encodeURIComponent(extra.count)}`; }
-        const _url = `${refreshURL}?${queryString}`
+        if (config.banner && config.banner.text) {
+            if (config.banner.text)
+                hashString += `${(!hashString.endsWith('&') ? '&' : '')}bannerText=${config.banner.text}`
+            if (config.banner.color)
+                hashString += `${(!hashString.endsWith('&') ? '&' : '')}textColor=${config.banner.color}`
+            if (config.banner.background)
+                hashString += `${(!hashString.endsWith('&') ? '&' : '')}bannerColor=${config.banner.background}`
+            if (config.banner.size)
+                hashString += `${(!hashString.endsWith('&') ? '&' : '')}textSize=${config.banner.size}`
+        }
+        const _url = `${refreshURL}?${queryString}#?${hashString}`;
         console.log(`Requesting URL "${_url}"`);
         try {
             const files = (!extra) ? await glob.sync(`${path.join(path.resolve(wallpaperLocation), './ads-wallpaper')}*`) : undefined;

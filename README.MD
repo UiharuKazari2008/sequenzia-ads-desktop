@@ -101,6 +101,24 @@ You can use this with cron tasks, `webMode: true` and `slave: ` must be outside 
 * info: [true, false]
   * Removed the image location data and move the logo to the right, you can also remove this property to do the same as true
 
+### Banner Options
+Allows you to add a banner to the top of all images (Useful for identifying a computer or classification)<br/>
+**NOTE: Banner settings are sent in the the URL hash and therfore are only read by the browser, the server will never receive your settings!**
+```json
+{
+  "banner": {
+    "text": "MacBook",
+    "color": "black",
+    "background": "white",
+    "size": "24px"
+  }
+}
+```
+* text: Text that is displayed on the banner
+* color: Text Color [CSS Color Name, hex, rgb()] 
+* background: Background Color [CSS Color Name, hex, rgb()]
+* size: Size of the text [px, pt, em, etc.]
+
 ## Direct Mode
 This will use the standard request and download the image for your wallpaper or folder
 ```json
