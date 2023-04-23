@@ -272,7 +272,7 @@ async function getWebCapture(opts, filename, extra) {
             const cookies = cookieJar.getCookiesSync(baseURL).map(c => c.toString());
             const pageRequest = new pageres({
                 delay: 5,
-                timeout: 15,
+                timeout: 30,
                 cookies: cookies,
                 filename: _filename
             })
@@ -325,79 +325,87 @@ async function getWebCapture(opts, filename, extra) {
                 extraCss += `.portait-overlay {box-shadow: none!important;}`;
             }
 
-            pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], { crop: true, css: extraCss });
-            pageRequest.dest(path.join(path.resolve(wallpaperLocation), (extra && extra.path) ? extra.path : ''));
-            await pageRequest.run()
-                .then(async sc => {
-                    if (!extra) {
-                        await wallpaper.set(path.join(path.resolve(wallpaperLocation), sc[0].filename));
-                        files.forEach(file => {
-                            rimraf.sync(file)
-                        });
-                        console.log("Wallpaper updated!");
-                        if (cliArgs.disableTimer) {
-                            process.exit(0);
-                        } else if (config.webMode && config.slave && (!syncedTimer || syncedIndex !== _selectedIndex) && !config.schedule) {
-                            const response = await got(`${baseURL}/ambient-history?command=timeSync&json=true&${queryString}`, {
-                                cookieJar,
-                                dnsLookupIpVersion: 'ipv4'
+            let pageGetOk = false;
+            let pageGeti = 0;
+            while (!pageGetOk && pageGeti <= 4) {
+                pageGeti++;
+                console.log(`Request Try ${pageGeti}/5`);
+                pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], { crop: true, css: extraCss });
+                pageRequest.dest(path.join(path.resolve(wallpaperLocation), (extra && extra.path) ? extra.path : ''));
+                await pageRequest.run()
+                    .then(async sc => {
+                        pageGetOk = true;
+                        if (!extra) {
+                            await wallpaper.set(path.join(path.resolve(wallpaperLocation), sc[0].filename));
+                            files.forEach(file => {
+                                rimraf.sync(file)
                             });
-                            if (response.body && response.body.includes('delta')) {
-                                const json = JSON.parse(response.body);
-                                if (json.delta && json.interval && (Math.abs(json.delta) < parseInt(json.interval.toString()) * 60000)) {
-                                    let nextRefreshTime = (json.interval * 60000) + json.delta;
-                                    console.log(`Got Sync Pulse : ${(nextRefreshTime / 60000).toFixed(2)} Min, Remote Interval is ${json.interval} Min`);
-                                    if (syncedIndex !== _selectedIndex) {
-                                        syncedIndex = _selectedIndex;
+                            console.log("Wallpaper updated!");
+                            if (cliArgs.disableTimer) {
+                                process.exit(0);
+                            } else if (config.webMode && config.slave && (!syncedTimer || syncedIndex !== _selectedIndex) && !config.schedule) {
+                                const response = await got(`${baseURL}/ambient-history?command=timeSync&json=true&${queryString}`, {
+                                    cookieJar,
+                                    dnsLookupIpVersion: 'ipv4'
+                                });
+                                if (response.body && response.body.includes('delta')) {
+                                    const json = JSON.parse(response.body);
+                                    if (json.delta && json.interval && (Math.abs(json.delta) < parseInt(json.interval.toString()) * 60000)) {
+                                        let nextRefreshTime = (json.interval * 60000) + json.delta;
+                                        console.log(`Got Sync Pulse : ${(nextRefreshTime / 60000).toFixed(2)} Min, Remote Interval is ${json.interval} Min`);
+                                        if (syncedIndex !== _selectedIndex) {
+                                            syncedIndex = _selectedIndex;
+                                        }
+                                        syncedTimer = true;
+                                        syncedInterval = json.interval * 60000;
+                                        setTimeout(async () => {
+                                            await getNextImage(config)
+                                        }, nextRefreshTime + 2000);
+                                    } else {
+                                        console.log("Failed to get time sync or master is not responding");
+                                        syncedTimer = false;
+                                        syncedInterval = undefined;
+                                        setTimeout(async () => {
+                                            await getNextImage(config)
+                                        }, refreshTimer);
                                     }
-                                    syncedTimer = true;
-                                    syncedInterval = json.interval * 60000;
-                                    setTimeout(async () => {
-                                        await getNextImage(config)
-                                    }, nextRefreshTime + 2000);
                                 } else {
-                                    console.log("Failed to get time sync or master is not responding");
+                                    console.log("Failed to get time sync response");
                                     syncedTimer = false;
                                     syncedInterval = undefined;
                                     setTimeout(async () => {
                                         await getNextImage(config)
                                     }, refreshTimer);
                                 }
-                            } else {
-                                console.log("Failed to get time sync response");
-                                syncedTimer = false;
-                                syncedInterval = undefined;
+                            } else if (config.webMode && config.slave && !config.schedule && syncedInterval) {
+                                setTimeout(async () => {
+                                    await getNextImage(config)
+                                }, syncedInterval);
+                            } else if (config.refreshTimeMin) {
                                 setTimeout(async () => {
                                     await getNextImage(config)
                                 }, refreshTimer);
+                            } else {
+                                process.exit(0);
                             }
-                        } else if (config.webMode && config.slave && !config.schedule && syncedInterval) {
-                            setTimeout(async () => {
-                                await getNextImage(config)
-                            }, syncedInterval);
-                        } else if (config.refreshTimeMin) {
-                            setTimeout(async () => {
-                                await getNextImage(config)
-                            }, refreshTimer);
-                        } else {
-                            process.exit(0);
                         }
-                    }
-                })
-                .catch(e => {
-                    console.log(`Failed to capture image from Sequenzia! - ${e.message}`)
-                    if (!extra) {
-                        if (cliArgs.disableTimer) {
-                            process.exit(0);
-                        } else if (config.refreshTimeMin) {
-                            setTimeout(async () => {
-                                await getNextImage(config)
-                            }, refreshTimer);
-                        } else {
-                            process.exit(0);
+                    })
+                    .catch(e => {
+                        console.log(`Failed to capture image from Sequenzia! - ${e.message}`)
+                        if (!extra) {
+                            if (cliArgs.disableTimer) {
+                                process.exit(0);
+                            } else if (config.refreshTimeMin) {
+                                setTimeout(async () => {
+                                    await getNextImage(config)
+                                }, refreshTimer);
+                            } else {
+                                process.exit(0);
+                            }
                         }
-                    }
-                })
+                    })
+            }
+
         } catch (e) {
             console.error(`Failed to capture image from Sequenzia!`)
             console.error(e);

@@ -2,6 +2,9 @@
 Simple and Lightweight way to get random wallpapers from Sequenzia (Requires Login)<br>
 New to Sequenzia? Create your own deployment https://docs.acr.moe/index.php?title=Build_Sequenzia_2_Server
 
+## M1 Mac Support
+Due to issues with Puppeteer please prefix your commands with `arch -x86_64 npx` to launch as Intel
+
 ## Authentication
 You must get a static Login Key from Sequenzia<br>
 Got to the user menu > Authentication > Static Login Key > Generate or Copy the key<br>
