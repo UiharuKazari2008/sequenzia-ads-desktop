@@ -134,6 +134,43 @@ This will use the standard request and download the image for your wallpaper or 
 
 }
 ```
+# Dynamic Wallpaper Support
+There is now support for MacOS Dynamic Light/Dark Wallpaper switching. You need to install `wallpapper` via Brew first.<br/>
+You can define the path to the executable with `wallpapper_exec: "/usr/local/bin/wallpapper"`<br/>
+## Configuration
+```json
+  "folders": [
+    {
+      "path": ".light-wallpapers",
+      "screen": "0",
+      "webMode": true,
+      "count": 2,
+      "query": "sort=fav&pins=true&fav_numdays=45",
+      "incimentalFileNames": true
+    },
+    {
+      "path": ".dark-wallpapers",
+      "screen": "0",
+      "webMode": true,
+      "count": 2,
+      "query": "album=10",
+      "incimentalFileNames": true
+    }
+  ],
+  "dynamic_wallpapers": [
+    {
+      "path": "Wallpapers",
+      "light": ".light-wallpapers",
+      "dark": ".dark-wallpapers"
+    }
+  ]
+```
+* path: The folder the HEIF files will be stored
+* light: The folder that contains the light images
+* dark: The folder that contains the dark images
+
+This generation process will be run after the image generations are finished. Only webMode is supported at this time.
+
 # Options
 ## Sequenzia Shortcut Query (Recommended)
 Use a exported text from the "Send to App" / "Export Results" Option from Sequenzia Web<br>

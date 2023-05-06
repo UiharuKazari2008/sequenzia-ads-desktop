@@ -15,6 +15,7 @@ const rimraf = require('rimraf');
 const pageres = require('pageres');
 const moment = require('moment');
 const sharp = require('sharp');
+const { spawn, exec } = require("child_process");
 let syncedTimer = false;
 let syncedInterval = undefined;
 let syncedIndex = undefined;
@@ -405,7 +406,6 @@ async function getWebCapture(opts, filename, extra) {
                         }
                     })
             }
-
         } catch (e) {
             console.error(`Failed to capture image from Sequenzia!`)
             console.error(e);
@@ -484,6 +484,52 @@ async function getNextImage (_config) {
         }
     }));
 }
+async function generateDynamicWallpapers(pair) {
+    //[
+    //     {
+    //         "fileName": "1.png",
+    //         "isPrimary": true,
+    //         "isForLight": true
+    //     },
+    //     {
+    //         "fileName": "2.png",
+    //         "isForDark": true
+    //     }
+    // ]
+
+    const light = fs.readdirSync(pair.light);
+    const dark = fs.readdirSync(pair.dark);
+
+    if (light.length === dark.length) {
+        for (const i in light) {
+            const dypair = [
+                {
+                    "fileName": `../${path.join(pair.light, light[i])}`,
+                    "isPrimary": true,
+                    "isForLight": true
+                },
+                {
+                    "fileName": `../${path.join(pair.dark, dark[i])}`,
+                    "isForDark": true
+                }
+            ];
+            fs.writeFileSync(path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.json`), JSON.stringify(dypair));
+
+            await new Promise(ok => {
+                const genImage = spawn(((config.wallpapper_exec) ? config.wallpapper_exec : "wallpapper"), ['-i', path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.json`), '-o', path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.heif`)], {encoding: 'utf8'});
+                genImage.stdout.on('data', (data) => console.log(data.toString()));
+                genImage.stderr.on('data', (data) => console.error(data.toString()));
+                genImage.on('close', (code, signal) => {
+                    if (fs.existsSync(path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.heif`)))
+                        fs.unlink(path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.json`), (err) => {});
+                    ok();
+                });
+            })
+        }
+    } else {
+        console.error('The Light/Dark pairs do not have the same number of images.')
+    }
+}
 
 let refreshTimer = 15 * 60 * 1000;
 if (config.folders) {
@@ -517,6 +563,12 @@ if (config.folders) {
                 }
             }
             console.log('Download Complete!')
+            if (config.dynamic_wallpapers) {
+                console.log('Updating Dynamic Wallpapers...');
+                for (const p of config.dynamic_wallpapers) {
+                    await generateDynamicWallpapers(p);
+                }
+            }
             setTimeout(() => {
                 process.exit(0);
             }, 15000)
