@@ -331,7 +331,7 @@ async function getWebCapture(opts, filename, extra) {
             while (!pageGetOk && pageGeti <= 4) {
                 pageGeti++;
                 console.log(`Request Try ${pageGeti}/5`);
-                pageRequest.src(_url, [`${(config.webWidth) ? config.webWidth : 3840}x${(config.webHeight) ? config.webHeight : 2160}`], { crop: true, css: extraCss });
+                pageRequest.src(_url, [`${(extra.webWidth) ? extra.webWidth : (config.webWidth) ? config.webWidth : 3840}x${(extra.webHeight) ? extra.webHeight : (config.webHeight) ? config.webHeight : 2160}`], { crop: true, css: extraCss });
                 pageRequest.dest(path.join(path.resolve(wallpaperLocation), (extra && extra.path) ? extra.path : ''));
                 await pageRequest.run()
                     .then(async sc => {
@@ -516,11 +516,11 @@ async function generateDynamicWallpapers(pair) {
             fs.writeFileSync(path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.json`), JSON.stringify(dypair));
 
             await new Promise(ok => {
-                const genImage = spawn(((config.wallpapper_exec) ? config.wallpapper_exec : "wallpapper"), ['-i', path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.json`), '-o', path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.heif`)], {encoding: 'utf8'});
+                const genImage = spawn(((config.wallpapper_exec) ? config.wallpapper_exec : "wallpapper"), ['-i', path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.json`), '-o', path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.heic`)], {encoding: 'utf8'});
                 genImage.stdout.on('data', (data) => console.log(data.toString()));
                 genImage.stderr.on('data', (data) => console.error(data.toString()));
                 genImage.on('close', (code, signal) => {
-                    if (fs.existsSync(path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.heif`)))
+                    if (fs.existsSync(path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.heic`)))
                         fs.unlink(path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.json`), (err) => {});
                     ok();
                 });

@@ -135,7 +135,12 @@ This will use the standard request and download the image for your wallpaper or 
 }
 ```
 # Dynamic Wallpaper Support
-There is now support for MacOS Dynamic Light/Dark Wallpaper switching. You need to install `wallpapper` via Brew first.<br/>
+There is now support for MacOS Dynamic Light/Dark Wallpaper switching.<br/>
+You need to install `wallpapper` via Brew first.<br/>
+```shell
+brew tap mczachurski/wallpapper
+brew install wallpapper
+```
 You can define the path to the executable with `wallpapper_exec: "/usr/local/bin/wallpapper"`<br/>
 ## Configuration
 ```json
@@ -337,7 +342,14 @@ You can use webkit or direct mode and webkit appearance options like normal, you
   * Do not delete any old images after new images are added
 * incimentalFileNames: [true, false]
   * Ensured that all files names are the same and will overwrite old files
-  * Mainly for OSs that are not smart about file management, **cough** Windows  
+  * Mainly for OSs that are not smart about file management, **cough** Windows 
+
+## Custom Output Image Resolution
+By default the resolution for the images is 16:9 4K, but to set a custom resolution you can set the following inside the config file or the specific folder
+```json
+  "webWidth": "2560",
+  "webHeight": "1664",
+```
 
 # Cron Schedules
 Please use [Cron Guru](https://crontab.guru/) for formatting, Incorrect cron job definitions can and will be disastrous!<br>
