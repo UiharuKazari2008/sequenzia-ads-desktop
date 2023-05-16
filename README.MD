@@ -173,8 +173,13 @@ You can define the path to the executable with `wallpapper_exec: "/usr/local/bin
 * path: The folder the HEIF files will be stored
 * light: The folder that contains the light images
 * dark: The folder that contains the dark images
+* light_start: Time Mode: Show light images starting at this time
+* dark_start: Time Mode: Show only dark images starting at this time unless the light_start
+* dark_end: Time Mode: The lastest time a dark image should be shown until day
 
-This generation process will be run after the image generations are finished. Only webMode is supported at this time.
+Time Mode: If you want to use macOS switching of images based on time (DST is accounted for automatically)
+
+This generation process will be run after the image generations are finished. Only webMode is supported at this time. If you want to just run the generation without updating images use "-g"
 
 # Options
 ## Sequenzia Shortcut Query (Recommended)
