@@ -495,18 +495,10 @@ async function generateDynamicWallpapers(pair) {
     const dark = fs.readdirSync(pair.dark).filter(file => file.endsWith('.png'));
 
     if (pair.light_start && pair.dark_start) {
-        const filename = `ads-wallpaper_time_${md5(pair.light + pair.dark + pair.light_start + pair.dark_start)}`
+        const filename = `ads-wallpaper_time_${md5(pair.light + pair.dark + pair.light_start + pair.dark_start + ((pair.unique_filename) ? Date.now() : ''))}`
         let timeRanges = [pair.light_start, pair.dark_start];
-        if (moment().isDST()) {
-            timeRanges = [
-                moment(pair.light_start, 'HH:mm').subtract(1, 'hour').format('HH:mm'),
-                moment(pair.dark_start, 'HH:mm').subtract(1, 'hour').format('HH:mm')
-            ];
-            if (pair.dark_end)
-                timeRanges.push(moment(pair.dark_end, 'HH:mm').subtract(1, 'hour').format('HH:mm'));
-        } else if (pair.dark_end) {
-            timeRanges.push(pair.dark_end);
-        }
+        if (pair.dark_end)
+            timeRanges.push(moment(pair.dark_end, 'HH:mm').add(1, 'hour').format('HH:mm'));
         const dayPeriod = moment(timeRanges[1], 'HH:mm').diff(moment(timeRanges[0], 'HH:mm'), 'minutes');
         const nightPeriod = (timeRanges[2]) ? (moment(timeRanges[2], 'HH:mm').add(1, 'days').diff(moment(timeRanges[1], 'HH:mm'), 'minutes')) : (1440 - dayPeriod)
         const dayInterval = Math.floor(dayPeriod / light.length);
@@ -518,7 +510,7 @@ async function generateDynamicWallpapers(pair) {
         for (const i in light) {
             let obj = {
                 "fileName": `../${path.join(pair.light, light[i])}`,
-                "time": currentTime.clone().utc().toISOString().slice(0, -5) + "Z",
+                "time": "2020-04-20T" + currentTime.format('HH:mm:ssZZ'),
             }
             if (i === '0') {
                 obj['isPrimary'] = true;
@@ -527,10 +519,11 @@ async function generateDynamicWallpapers(pair) {
             dypair.push(obj);
             currentTime.add(dayInterval, 'minutes');
         }
+        currentTime = moment(timeRanges[1], 'HH:mm');
         for (const i in dark) {
             let obj = {
                 "fileName": `../${path.join(pair.dark, dark[i])}`,
-                "time": currentTime.clone().utc().toISOString().slice(0, -5) + "Z",
+                "time": "2020-04-20T" + currentTime.format('HH:mm:ssZZ'),
             }
             if (i === '0') {
                 obj['isForDark'] = true;
@@ -547,6 +540,7 @@ async function generateDynamicWallpapers(pair) {
             genImage.stdout.on('data', (data) => console.log(data.toString()));
             genImage.stderr.on('data', (data) => console.error(data.toString()));
             genImage.on('close', (code, signal) => {
+                ok();
             });
         })
     } else if (light.length === dark.length) {
@@ -568,6 +562,9 @@ async function generateDynamicWallpapers(pair) {
                 const genImage = spawn(((config.wallpapper_exec) ? config.wallpapper_exec : "wallpapper"), ['-i', path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.json`), '-o', path.join(pair.path, `ads-wallpaper_pair_index${parseInt(i)+1}.heic`)], {encoding: 'utf8'});
                 genImage.stdout.on('data', (data) => console.log(data.toString()));
                 genImage.stderr.on('data', (data) => console.error(data.toString()));
+                genImage.on('close', (code, signal) => {
+                    ok();
+                });
             })
         }
     } else {
