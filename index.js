@@ -319,6 +319,9 @@ async function getWebCapture(opts, filename, extra) {
             if (apperance.info !== undefined && apperance.info === false) {
                 extraCss += `#dataInfo { display: none!important; } #logoStart { margin-left: auto; flex-grow: unset!important; }`;
             }
+            if (apperance.logo !== undefined && apperance.logo === false) {
+                extraCss += `#logoStart { display: none!important }`;
+            }
             const _adj  =`saturate(${(apperance.saturate !== undefined) ? apperance.saturate : '2' }) brightness(${(apperance.brightness !== undefined) ? apperance.brightness : '1.2' }) contrast(${(apperance.contrast !== undefined) ? apperance.contrast : '0.6' })`
             const _blur = (apperance.blur !== undefined && apperance.blur === false) ? '' : `filter: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='a' x='0' y='0' width='10' height='1'%3E%3CfeGaussianBlur stdDeviation='${(apperance.blur !== undefined) ? apperance.blur : '10' }' result='b'/%3E%3CfeMorphology operator='dilate' radius='4'/%3E %3CfeMerge%3E%3CfeMergeNode/%3E%3CfeMergeNode in='b'/%3E%3C/feMerge%3E%3C/filter%3E%3C/svg%3E#a) `
             extraCss += `.blur-this { ${_blur}${_adj}!important; -webkit-filter: ${_blur}${_adj}!important;}`;
