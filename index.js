@@ -601,7 +601,7 @@ if (cliArgs.generateHEIC) {
                         if (f.incimentalFileNames) {
                             indexCount++
                         }
-                        await getWebCapture(requestBuilder(f), (indexCount > 0) ? `ads-wallpaper_index${indexCount}` : undefined, f);
+                        await getWebCapture(requestBuilder(f), (indexCount > 0) ? `ads-wallpaper_index${(f.incimentStart) ? (indexCount + (f.incimentStart - 1)) : indexCount}` : undefined, f);
                     }
                 } else {
                     let opts = {};
