@@ -47,13 +47,18 @@ const cliArgs = yargs(hideBin(process.argv))
         type: 'string',
         description: 'Alternative Path for wallpaper storage, useful for environments where relative path is not available'
     })
+    .option('cookiefile', {
+        alias: 'a',
+        type: 'string',
+        description: 'Alternative Filename for the stored cookie file, useful for multi-server configurations'
+    })
     .argv
 
 console.log(`Sequenzia uDWS for NodeJS - "Its Simple"\n`);
 
 let configFileLocation = path.join(path.resolve(process.cwd(), './config.json'));
 const wallpaperLocation = (cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd();
-const cookieLocation = path.join(path.resolve((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), './.ads-cookie.json'));
+const cookieLocation = path.join(path.resolve((cliArgs.wallpaperStorage) ? cliArgs.wallpaperStorage : process.cwd(), (cliArgs.cookiefile) ? ('./' + cliArgs.cookiefile + '.json') : './.ads-cookie.json'));
 if (cliArgs.config) { configFileLocation = path.join(path.resolve(process.cwd(), `./${cliArgs.config}`)) }
 const config = require(configFileLocation);
 const {md5} = require("request/lib/helpers");

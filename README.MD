@@ -347,7 +347,10 @@ You can use webkit or direct mode and webkit appearance options like normal, you
   * Do not delete any old images after new images are added
 * incimentalFileNames: [true, false]
   * Ensured that all files names are the same and will overwrite old files
-  * Mainly for OSs that are not smart about file management, **cough** Windows 
+  * Mainly for OSs that are not smart about file management, **cough** Windows
+* incimentStart: Interger
+  * Offsets the incimental filename numbers by this number
+  * If you are wanting to use the same folder name for multiple requests or multiple config files
 
 ## Custom Output Image Resolution
 By default the resolution for the images is 16:9 4K, but to set a custom resolution you can set the following inside the config file or the specific folder
